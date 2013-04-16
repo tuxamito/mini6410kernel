@@ -1,0 +1,1801 @@
+diff -r linux-2.6.38/Makefile fa-linux-2.6.38/Makefile
+191c191,192
+< ARCH		?= $(SUBARCH)
+---
+> #ARCH		?= $(SUBARCH)
+> ARCH		?= arm
+diff -r linux-2.6.38/arch/arm/Kconfig fa-linux-2.6.38/arch/arm/Kconfig
+672c672
+< 	bool "Samsung S3C2410, S3C2412, S3C2413, S3C2416, S3C2440, S3C2442, S3C2443, S3C2450"
+---
+> 	bool "Samsung S3C2410/2/3/6, S3C2440/2/3, S3C2450"
+diff -r linux-2.6.38/arch/arm/mach-s3c64xx/Kconfig fa-linux-2.6.38/arch/arm/mach-s3c64xx/Kconfig
+101,115d100
+< config MACH_MINI6410
+< 	bool "MINI6410"
+< 	select CPU_S3C6410
+< 	select S3C_DEV_HSMMC
+< 	select S3C_DEV_HSMMC1
+< 	select S3C64XX_SETUP_SDHCI
+< 	select S3C_DEV_USB_HOST
+< 	select S3C_DEV_NAND
+< 	select S3C_DEV_FB
+< 	select S3C64XX_SETUP_FB_24BPP
+< 	select SAMSUNG_DEV_ADC
+< 	select SAMSUNG_DEV_TS
+< 	help
+< 	  Machine support for the FriendlyARM MINI6410
+< 
+216a202,241
+> 
+> config MACH_MINI6410
+> 	bool "MINI6410"
+> 	select CPU_S3C6410
+> 	select SAMSUNG_DEV_ADC
+> 	select S3C_DEV_HSMMC
+> 	select S3C_DEV_HSMMC1
+> 	select S3C_DEV_FB
+> 	select S3C_DEV_USB_HOST
+> 	select S3C_DEV_USB_HSOTG
+> 	select S3C_DEV_WDT
+> 	select S3C_DEV_RTC
+> 	select HAVE_S3C2410_WATCHDOG
+> 	select S3C64XX_SETUP_SDHCI
+> 	select S3C64XX_SETUP_FB_24BPP
+> 	select S3C64XX_DEV_FIMC0 if VIDEO_SAMSUNG
+> 	select S3C64XX_DEV_FIMC1 if VIDEO_SAMSUNG
+> 	select WIRELESS_EXT
+> 	select WEXT_SPY
+> 	select WEXT_PRIV
+> 	select AVERAGE
+> 	help
+> 	  Machine support for the FriendlyARM Mini6410
+> 
+> menu "MINI6410 MMC/SD slot setup"
+> 	depends on MACH_MINI6410
+> 
+> config MINI6410_SD_CH0
+> 	bool "Use channel 0 (removable)"
+> 	depends on MACH_MINI6410
+> 	help
+> 	  Say Y to enable MMC/SD slot 0 for USB storage, Camera, Wi-Fi etc.
+> 
+> config MINI6410_SD_CH1
+> 	bool "Use channel 1 (on-board)"
+> 	depends on MACH_MINI6410
+> 	help
+> 	  Say Y to enable the NONREMOVABLE slot for SDIO Wi-Fi.
+> 
+> endmenu
+diff -r linux-2.6.38/arch/arm/mach-s3c64xx/Makefile fa-linux-2.6.38/arch/arm/mach-s3c64xx/Makefile
+54a55
+> obj-$(CONFIG_MACH_MINI6410)	+= mach-mini6410.o mini6410-lcds.o
+56d56
+< obj-$(CONFIG_MACH_MINI6410)     += mach-mini6410.o
+69a70
+> obj-$(CONFIG_TOUCHSCREEN_MINI6410)  += dev-ts-mini6410.o
+diff -r linux-2.6.38/arch/arm/mach-s3c64xx/clock.c fa-linux-2.6.38/arch/arm/mach-s3c64xx/clock.c
+96a97,120
+> #ifdef CONFIG_VIDEO_SAMSUNG
+> static int s3c64xx_setrate_sclk_cam(struct clk *clk, unsigned long rate)
+> {
+> 	u32 shift = 20;
+> 	u32 cam_div, cfg;
+> 	unsigned long src_clk = clk_get_rate(clk->parent);
+> 
+> 	cam_div = src_clk / rate;
+> 
+> 	if (cam_div > 32)
+> 		cam_div = 32;
+> 
+> 	cfg = __raw_readl(S3C_CLK_DIV0);
+> 	cfg &= ~(0xf << shift);
+> 	cfg |= ((cam_div - 1) << shift);
+> 	__raw_writel(cfg, S3C_CLK_DIV0);
+> 
+> 	printk("parent clock for camera: %ld.%03ld MHz, divisor: %d\n", \
+> 			print_mhz(src_clk), cam_div);
+> 
+> 	return 0;
+> }
+> #endif
+> 
+331c355,406
+< 	}
+---
+> 	},
+> #ifdef CONFIG_VIDEO_SAMSUNG
+> 	{
+> 		.name		= "fimc",
+> 		.id		= -1,
+> 		.parent		= &clk_h,
+> 		.ctrlbit	= S3C_CLKCON_HCLK_CAMIF,
+> 	}, {
+> 		.name		= "hclk_mfc",
+> 		.id		= -1,
+> 		.parent		= &clk_h,
+> 		.enable		= s3c64xx_hclk_ctrl,
+> 		.ctrlbit	= S3C_CLKCON_HCLK_MFC,
+> 	}, {
+> 		.name		= "sclk_mfc",
+> 		.id		= -1,
+> 		.parent		= &clk_h2,
+> 		.enable		= s3c64xx_sclk_ctrl,
+> 		.ctrlbit	= S3C_CLKCON_SCLK_MFC,
+> 		.usage		= 0,
+> 		.rate		= 48*1000*1000,
+> 	}, {
+> 		.name		= "pclk_mfc",
+> 		.id		= -1,
+> 		.parent		= &clk_p,
+> 		.enable		= s3c64xx_pclk_ctrl,
+> 		.ctrlbit	= S3C_CLKCON_PCLK_MFC,
+> 	}, {
+> 		.name		= "hclk_jpeg",
+> 		.id		= -1,
+> 		.parent		= &clk_h,
+> 		.enable		= s3c64xx_hclk_ctrl,
+> 		.ctrlbit	= S3C_CLKCON_HCLK_JPEG,
+> 	}, {
+> 		.name		= "sclk_jpeg",
+> 		.id		= -1,
+> 		.parent		= &clk_h2,
+> 		.enable		= s3c64xx_sclk_ctrl,
+> 		.ctrlbit	= S3C_CLKCON_SCLK_JPEG,
+> 		.usage		= 0,
+> 		.rate		= 48*1000*1000,
+> 	}, {
+> 		.name		= "sclk_cam",
+> 		.id		= -1,
+> 		.parent		= &clk_h2,
+> 		.enable		= s3c64xx_sclk_ctrl,
+> 		.ctrlbit	= S3C_CLKCON_SCLK_CAM,
+> 		.ops        = &(struct clk_ops) {
+> 			.set_rate	= s3c64xx_setrate_sclk_cam,
+> 		},
+> 	},
+> #endif
+783c858,865
+< 	hclk2 = mpll / GET_DIV(clkdiv0, S3C6400_CLKDIV0_HCLK2);
+---
+> 	if(__raw_readl(S3C64XX_OTHERS) & S3C64XX_OTHERS_SYNCMUXSEL_SYNC) {
+> 		/* Synchronous mode */
+> 		hclk2 = apll / GET_DIV(clkdiv0, S3C6400_CLKDIV0_HCLK2);
+> 	} else {
+> 		/* Asynchronous mode */
+> 		hclk2 = mpll / GET_DIV(clkdiv0, S3C6400_CLKDIV0_HCLK2);
+> 	}
+> 
+Only in fa-linux-2.6.38/arch/arm/mach-s3c64xx: dev-ts-mini6410.c
+Only in fa-linux-2.6.38/arch/arm/mach-s3c64xx/include/mach: gpio-bank-k.h
+Only in fa-linux-2.6.38/arch/arm/mach-s3c64xx/include/mach: gpio-bank-l.h
+diff -r linux-2.6.38/arch/arm/mach-s3c64xx/include/mach/map.h fa-linux-2.6.38/arch/arm/mach-s3c64xx/include/mach/map.h
+107a108,127
+> /* CAMIF, MFC, TV, JPEG... */
+> #define S3C64XX_PA_G2D		(0x76100000)
+> #define S3C64XX_SZ_G2D		SZ_1M
+> #define S3C64XX_PA_G3D		(0x72000000)
+> #define S3C64XX_SZ_G3D		SZ_16M
+> #define S3C64XX_PA_FIMC		(0x78000000)
+> #define S3C64XX_SZ_FIMC		SZ_1M
+> #define S3C6400_PA_TVENC	(0x76200000)
+> #define S3C_SZ_TVENC		SZ_1M
+> #define S3C6400_PA_TVSCALER	(0x76300000)
+> #define S3C_SZ_TVSCALER		SZ_1M
+> #define S3C6400_PA_ROTATOR	(0x77200000)
+> #define S3C_SZ_ROTATOR		SZ_1M
+> #define S3C6400_PA_JPEG		(0x78800000)
+> #define S3C_SZ_JPEG			SZ_4M
+> #define S3C6400_PA_VPP		(0x77000000)
+> #define S3C_SZ_VPP			SZ_1M
+> #define S3C6400_PA_MFC		(0x7E002000)
+> #define S3C_SZ_MFC			SZ_4K
+> 
+diff -r linux-2.6.38/arch/arm/mach-s3c64xx/include/mach/memory.h fa-linux-2.6.38/arch/arm/mach-s3c64xx/include/mach/memory.h
+18c18
+< #define CONSISTENT_DMA_SIZE	SZ_8M
+---
+> #define CONSISTENT_DMA_SIZE	(SZ_8M + SZ_4M + SZ_2M)
+Only in fa-linux-2.6.38/arch/arm/mach-s3c64xx/include/mach: regs-fimc.h
+Only in fa-linux-2.6.38/arch/arm/mach-s3c64xx/include/mach: regs-g2d.h
+Only in fa-linux-2.6.38/arch/arm/mach-s3c64xx/include/mach: regs-lcd.h
+Only in fa-linux-2.6.38/arch/arm/mach-s3c64xx/include/mach: regs-mfc.h
+Only in fa-linux-2.6.38/arch/arm/mach-s3c64xx/include/mach: regs-pp.h
+Only in fa-linux-2.6.38/arch/arm/mach-s3c64xx/include/mach: regs-rotator.h
+diff -r linux-2.6.38/arch/arm/mach-s3c64xx/include/mach/regs-sys.h fa-linux-2.6.38/arch/arm/mach-s3c64xx/include/mach/regs-sys.h
+26c26,27
+< #define S3C64XX_OTHERS_USBMASK	(1 << 16)
+---
+> #define S3C64XX_OTHERS_USBMASK			(1 << 16)
+> #define S3C64XX_OTHERS_SYNCMUXSEL_SYNC	(1 << 6)
+Only in fa-linux-2.6.38/arch/arm/mach-s3c64xx/include/mach: regs-tvenc.h
+Only in fa-linux-2.6.38/arch/arm/mach-s3c64xx/include/mach: regs-tvscaler.h
+Only in fa-linux-2.6.38/arch/arm/mach-s3c64xx/include/mach: s3cfb.h
+Only in fa-linux-2.6.38/arch/arm/mach-s3c64xx/include/mach: ts.h
+diff -r linux-2.6.38/arch/arm/mach-s3c64xx/mach-mini6410.c fa-linux-2.6.38/arch/arm/mach-s3c64xx/mach-mini6410.c
+3c3,4
+<  * Copyright 2010 Darius Augulis <augulis.darius@gmail.com>
+---
+>  * Copyright 2010 FriendlyARM (www.arm9.net)
+>  *
+15c16,17
+< #include <linux/init.h>
+---
+> #include <linux/kernel.h>
+> #include <linux/types.h>
+16a19,26
+> #include <linux/list.h>
+> #include <linux/timer.h>
+> #include <linux/init.h>
+> #include <linux/serial_core.h>
+> #include <linux/platform_device.h>
+> #include <linux/io.h>
+> #include <linux/i2c.h>
+> #include <linux/leds.h>
+19,20c29,30
+< #include <linux/kernel.h>
+< #include <linux/list.h>
+---
+> #include <linux/delay.h>
+> #include <linux/gfp.h>
+24,25c34,36
+< #include <linux/serial_core.h>
+< #include <linux/types.h>
+---
+> #include <linux/proc_fs.h>
+> 
+> #include <video/platform_lcd.h>
+27d37
+< #include <asm/mach-types.h>
+29a40
+> #include <asm/mach/irq.h>
+31c42
+< #include <mach/map.h>
+---
+> #include <mach/hardware.h>
+33c44,49
+< #include <mach/regs-gpio.h>
+---
+> #include <mach/map.h>
+> 
+> #include <asm/irq.h>
+> #include <asm/mach-types.h>
+> 
+> #include <plat/regs-serial.h>
+34a51,52
+> #include <mach/regs-gpio.h>
+> #include <mach/regs-sys.h>
+36,40c54
+< #include <mach/s3c6410.h>
+< 
+< #include <plat/adc.h>
+< #include <plat/cpu.h>
+< #include <plat/devs.h>
+---
+> #include <plat/iic.h>
+41a56
+> #include <plat/gpio-cfg.h>
+43,46d57
+< #include <plat/regs-serial.h>
+< #include <plat/ts.h>
+< 
+< #include <video/platform_lcd.h>
+48,50c59,78
+< #define UCON S3C2410_UCON_DEFAULT
+< #define ULCON (S3C2410_LCON_CS8 | S3C2410_LCON_PNONE | S3C2410_LCON_STOPB)
+< #define UFCON (S3C2410_UFCON_RXTRIG8 | S3C2410_UFCON_FIFOMODE)
+---
+> #include <mach/s3c6410.h>
+> #include <plat/clock.h>
+> #include <plat/devs.h>
+> #include <plat/cpu.h>
+> #include <plat/adc.h>
+> #include <mach/ts.h>
+> #include <plat/regs-usb-hsotg-phy.h>
+> #include <plat/audio.h>
+> #include <plat/fimc.h>
+> 
+> #include <linux/mmc/host.h>
+> #include <plat/sdhci.h>
+> 
+> #define UCON S3C2410_UCON_DEFAULT | S3C2410_UCON_UCLK
+> #define ULCON S3C2410_LCON_CS8 | S3C2410_LCON_PNONE | S3C2410_LCON_STOPB
+> #define UFCON S3C2410_UFCON_RXTRIG8 | S3C2410_UFCON_FIFOMODE
+> 
+> extern void s3c64xx_reserve_bootmem(void);
+> extern int s3c_media_read_proc(char *buf, char **start, off_t offset,
+> 		int count, int *eof, void *data);
+54,58c82,86
+< 		.hwport	= 0,
+< 		.flags	= 0,
+< 		.ucon	= UCON,
+< 		.ulcon	= ULCON,
+< 		.ufcon	= UFCON,
+---
+> 		.hwport	     = 0,
+> 		.flags	     = 0,
+> 		.ucon	     = UCON,
+> 		.ulcon	     = ULCON,
+> 		.ufcon	     = UFCON,
+61,65c89,93
+< 		.hwport	= 1,
+< 		.flags	= 0,
+< 		.ucon	= UCON,
+< 		.ulcon	= ULCON,
+< 		.ufcon	= UFCON,
+---
+> 		.hwport	     = 1,
+> 		.flags	     = 0,
+> 		.ucon	     = UCON,
+> 		.ulcon	     = ULCON,
+> 		.ufcon	     = UFCON,
+68,72c96,100
+< 		.hwport	= 2,
+< 		.flags	= 0,
+< 		.ucon	= UCON,
+< 		.ulcon	= ULCON,
+< 		.ufcon	= UFCON,
+---
+> 		.hwport	     = 2,
+> 		.flags	     = 0,
+> 		.ucon	     = UCON,
+> 		.ulcon	     = ULCON,
+> 		.ufcon	     = UFCON,
+75,79c103,107
+< 		.hwport	= 3,
+< 		.flags	= 0,
+< 		.ucon	= UCON,
+< 		.ulcon	= ULCON,
+< 		.ufcon	= UFCON,
+---
+> 		.hwport	     = 3,
+> 		.flags	     = 0,
+> 		.ucon	     = UCON,
+> 		.ulcon	     = ULCON,
+> 		.ufcon	     = UFCON,
+83c111
+< /* DM9000AEP 10/100 ethernet controller */
+---
+> /* framebuffer and LCD setup. */
+85,99c113,133
+< static struct resource mini6410_dm9k_resource[] = {
+< 	[0] = {
+< 		.start	= S3C64XX_PA_XM0CSN1,
+< 		.end	= S3C64XX_PA_XM0CSN1 + 1,
+< 		.flags	= IORESOURCE_MEM
+< 	},
+< 	[1] = {
+< 		.start	= S3C64XX_PA_XM0CSN1 + 4,
+< 		.end	= S3C64XX_PA_XM0CSN1 + 5,
+< 		.flags	= IORESOURCE_MEM
+< 	},
+< 	[2] = {
+< 		.start	= S3C_EINT(7),
+< 		.end	= S3C_EINT(7),
+< 		.flags	= IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHLEVEL
+---
+> /* GPF15 = LCD backlight control
+>  * GPF13 => Panel power
+>  * GPN5 = LCD nRESET signal
+>  * PWM_TOUT1 => backlight brightness
+>  */
+> 
+> static void mini6410_lcd_power_set(struct plat_lcd_data *pd,
+> 				   unsigned int power)
+> {
+> 	if (power) {
+> 		gpio_direction_output(S3C64XX_GPF(13), 1);
+> 		gpio_direction_output(S3C64XX_GPF(15), 1);
+> 
+> 		/* fire nRESET on power up */
+> 		gpio_direction_output(S3C64XX_GPN(5), 0);
+> 		msleep(10);
+> 		gpio_direction_output(S3C64XX_GPN(5), 1);
+> 		msleep(1);
+> 	} else {
+> 		gpio_direction_output(S3C64XX_GPF(15), 0);
+> 		gpio_direction_output(S3C64XX_GPF(13), 0);
+100a135,138
+> }
+> 
+> static struct plat_lcd_data mini6410_lcd_power_data = {
+> 	.set_power	= mini6410_lcd_power_set,
+103,104c141,144
+< static struct dm9000_plat_data mini6410_dm9k_pdata = {
+< 	.flags		= (DM9000_PLATF_16BITONLY | DM9000_PLATF_NO_EEPROM),
+---
+> static struct platform_device mini6410_lcd_powerdev = {
+> 	.name			= "platform-lcd",
+> 	.dev.parent		= &s3c_device_fb.dev,
+> 	.dev.platform_data	= &mini6410_lcd_power_data,
+107,113c147,160
+< static struct platform_device mini6410_device_eth = {
+< 	.name		= "dm9000",
+< 	.id		= -1,
+< 	.num_resources	= ARRAY_SIZE(mini6410_dm9k_resource),
+< 	.resource	= mini6410_dm9k_resource,
+< 	.dev		= {
+< 		.platform_data	= &mini6410_dm9k_pdata,
+---
+> static struct s3c_fb_pd_win mini6410_fb_win0 = {
+> 	/* this is to ensure we use win0 */
+> 	.win_mode	= {
+> #if 0
+> 		.pixclock	= 115440,
+> #endif
+> 		.left_margin	= 0x03,
+> 		.right_margin	= 0x02,
+> 		.upper_margin	= 0x01,
+> 		.lower_margin	= 0x01,
+> 		.hsync_len	= 0x28,
+> 		.vsync_len	= 0x01,
+> 		.xres		= 480,
+> 		.yres		= 272,
+114a162,163
+> 	.max_bpp	= 32,
+> 	.default_bpp	= 16,
+117,126c166,191
+< static struct mtd_partition mini6410_nand_part[] = {
+< 	[0] = {
+< 		.name	= "uboot",
+< 		.size	= SZ_1M,
+< 		.offset	= 0,
+< 	},
+< 	[1] = {
+< 		.name	= "kernel",
+< 		.size	= SZ_2M,
+< 		.offset	= SZ_1M,
+---
+> /* 405566 clocks per frame => 60Hz refresh requires 24333960Hz clock */
+> static struct s3c_fb_platdata mini6410_lcd_pdata __initdata = {
+> 	.setup_gpio	= s3c64xx_fb_gpio_setup_24bpp,
+> 	.win[0]		= &mini6410_fb_win0,
+> 	.vidcon0	= VIDCON0_VIDOUT_RGB | VIDCON0_PNRMODE_RGB,
+> 	.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC,
+> };
+> 
+> /* MMC/SD config */
+> static struct s3c_sdhci_platdata mini6410_hsmmc0_pdata = {
+>     .max_width      = 4,
+>     .cd_type        = S3C_SDHCI_CD_INTERNAL,
+> };
+> 
+> static struct s3c_sdhci_platdata mini6410_hsmmc1_pdata = {
+>     .max_width      = 4,
+>     .cd_type        = S3C_SDHCI_CD_PERMANENT,
+> };
+> 
+> /* Nand flash */
+> struct mtd_partition mini6410_nand_part[] = {
+> 	{
+> 		.name		= "Bootloader",
+> 		.offset		= 0,
+> 		.size		= (4 * 128 *SZ_1K),
+> 		.mask_flags	= MTD_CAP_NANDFLASH,
+128,131c193,197
+< 	[2] = {
+< 		.name	= "rootfs",
+< 		.size	= MTDPART_SIZ_FULL,
+< 		.offset	= SZ_1M + SZ_2M,
+---
+> 	{
+> 		.name		= "Kernel",
+> 		.offset		= (4 * 128 *SZ_1K),
+> 		.size		= (5*SZ_1M) ,
+> 		.mask_flags	= MTD_CAP_NANDFLASH,
+132a199,203
+> 	{
+> 		.name		= "File System",
+> 		.offset		= MTDPART_OFS_APPEND,
+> 		.size		= MTDPART_SIZ_FULL,
+> 	}
+137,140c208,211
+< 		.name		= "nand",
+< 		.nr_chips	= 1,
+< 		.nr_partitions	= ARRAY_SIZE(mini6410_nand_part),
+< 		.partitions	= mini6410_nand_part,
+---
+> 		.name       = "nand",
+> 		.nr_chips   = 1,
+> 		.nr_partitions  = ARRAY_SIZE(mini6410_nand_part),
+> 		.partitions = mini6410_nand_part,
+145,150c216,244
+< 	.tacls		= 25,
+< 	.twrph0		= 55,
+< 	.twrph1		= 40,
+< 	.nr_sets	= ARRAY_SIZE(mini6410_nand_sets),
+< 	.sets		= mini6410_nand_sets,
+< };
+---
+> 	.tacls      = 25,
+> 	.twrph0     = 55,
+> 	.twrph1     = 40,
+> 	.nr_sets    = ARRAY_SIZE(mini6410_nand_sets),
+> 	.sets       = mini6410_nand_sets,
+> };
+> 
+> #ifdef CONFIG_USB_SUPPORT
+> /* Initializes OTG Phy. to output 48M clock */
+> void s3c_otg_phy_config(int enable) {
+> 	u32 val;
+> 
+> 	if (enable) {
+> 		__raw_writel(0x0, S3C_PHYPWR);	/* Power up */
+> 
+> 		val = __raw_readl(S3C_PHYCLK);
+> 		val &= ~S3C_PHYCLK_CLKSEL_MASK;
+> 		__raw_writel(val, S3C_PHYCLK);
+> 
+> 		__raw_writel(0x1, S3C_RSTCON);
+> 		udelay(5);
+> 		__raw_writel(0x0, S3C_RSTCON);	/* Finish the reset */
+> 		udelay(5);
+> 	} else {
+> 		__raw_writel(0x19, S3C_PHYPWR);	/* Power down */
+> 	}
+> }
+> EXPORT_SYMBOL(s3c_otg_phy_config);
+> #endif
+152,178c246,266
+< static struct s3c_fb_pd_win mini6410_fb_win[] = {
+< 	{
+< 		.win_mode	= {	/* 4.3" 480x272 */
+< 			.left_margin	= 3,
+< 			.right_margin	= 2,
+< 			.upper_margin	= 1,
+< 			.lower_margin	= 1,
+< 			.hsync_len	= 40,
+< 			.vsync_len	= 1,
+< 			.xres		= 480,
+< 			.yres		= 272,
+< 		},
+< 		.max_bpp	= 32,
+< 		.default_bpp	= 16,
+< 	}, {
+< 		.win_mode	= {	/* 7.0" 800x480 */
+< 			.left_margin	= 8,
+< 			.right_margin	= 13,
+< 			.upper_margin	= 7,
+< 			.lower_margin	= 5,
+< 			.hsync_len	= 3,
+< 			.vsync_len	= 1,
+< 			.xres		= 800,
+< 			.yres		= 480,
+< 		},
+< 		.max_bpp	= 32,
+< 		.default_bpp	= 16,
+---
+> /* Ethernet */
+> #ifdef CONFIG_DM9000
+> #define S3C64XX_PA_DM9000	(0x18000000)
+> #define S3C64XX_SZ_DM9000	SZ_1M
+> #define S3C64XX_VA_DM9000	S3C_ADDR(0x03b00300)
+> 
+> static struct resource dm9000_resources[] = {
+> 	[0] = {
+> 		.start		= S3C64XX_PA_DM9000,
+> 		.end		= S3C64XX_PA_DM9000 + 3,
+> 		.flags		= IORESOURCE_MEM,
+> 	},
+> 	[1] = {
+> 		.start		= S3C64XX_PA_DM9000 + 4,
+> 		.end		= S3C64XX_PA_DM9000 + S3C64XX_SZ_DM9000 - 1,
+> 		.flags		= IORESOURCE_MEM,
+> 	},
+> 	[2] = {
+> 		.start		= IRQ_EINT(7),
+> 		.end		= IRQ_EINT(7),
+> 		.flags		= IORESOURCE_IRQ | IRQF_TRIGGER_HIGH,
+182,186c270,272
+< static struct s3c_fb_platdata mini6410_lcd_pdata __initdata = {
+< 	.setup_gpio	= s3c64xx_fb_gpio_setup_24bpp,
+< 	.win[0]		= &mini6410_fb_win[0],
+< 	.vidcon0	= VIDCON0_VIDOUT_RGB | VIDCON0_PNRMODE_RGB,
+< 	.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC,
+---
+> static struct dm9000_plat_data dm9000_setup = {
+> 	.flags			= DM9000_PLATF_16BITONLY,
+> 	.dev_addr		= { 0x08, 0x90, 0x00, 0xa0, 0x90, 0x90 },
+189,199c275,282
+< static void mini6410_lcd_power_set(struct plat_lcd_data *pd,
+< 				   unsigned int power)
+< {
+< 	if (power)
+< 		gpio_direction_output(S3C64XX_GPE(0), 1);
+< 	else
+< 		gpio_direction_output(S3C64XX_GPE(0), 0);
+< }
+< 
+< static struct plat_lcd_data mini6410_lcd_power_data = {
+< 	.set_power	= mini6410_lcd_power_set,
+---
+> static struct platform_device s3c_device_dm9000 = {
+> 	.name			= "dm9000",
+> 	.id				= 0,
+> 	.num_resources	= ARRAY_SIZE(dm9000_resources),
+> 	.resource		= dm9000_resources,
+> 	.dev			= {
+> 		.platform_data = &dm9000_setup,
+> 	}
+202,206c285,305
+< static struct platform_device mini6410_lcd_powerdev = {
+< 	.name			= "platform-lcd",
+< 	.dev.parent		= &s3c_device_fb.dev,
+< 	.dev.platform_data	= &mini6410_lcd_power_data,
+< };
+---
+> static int __init dm9000_set_mac(char *str) {
+> 	unsigned char addr[6];
+> 	unsigned int val;
+> 	int idx = 0;
+> 	char *p = str, *end;
+> 
+> 	while (*p && idx < 6) {
+> 		val = simple_strtoul(p, &end, 16);
+> 		if (end <= p) {
+> 			/* convert failed */
+> 			break;
+> 		} else {
+> 			addr[idx++] = val;
+> 			p = end;
+> 			if (*p == ':'|| *p == '-') {
+> 				p++;
+> 			} else {
+> 				break;
+> 			}
+> 		}
+> 	}
+208,211c307,333
+< static struct s3c2410_ts_mach_info s3c_ts_platform __initdata = {
+< 	.delay			= 10000,
+< 	.presc			= 49,
+< 	.oversampling_shift	= 2,
+---
+> 	if (idx == 6) {
+> 		printk("Setup ethernet address to %pM\n", addr);
+> 		memcpy(dm9000_setup.param_addr, addr, 6);
+> 	}
+> 
+> 	return 1;
+> }
+> 
+> __setup("ethmac=", dm9000_set_mac);
+> #endif
+> 
+> static struct map_desc mini6410_iodesc[] = {
+> 	{
+> 		/* LCD support */
+> 		.virtual    = (unsigned long)S3C_VA_LCD,
+> 		.pfn        = __phys_to_pfn(S3C_PA_FB),
+> 		.length     = SZ_16K,
+> 		.type       = MT_DEVICE,
+> 	},
+> #ifdef CONFIG_DM9000
+> 	{
+> 		.virtual	= (u32)S3C64XX_VA_DM9000,
+> 		.pfn		= __phys_to_pfn(S3C64XX_PA_DM9000),
+> 		.length		= S3C64XX_SZ_DM9000,
+> 		.type		= MT_DEVICE,
+> 	},
+> #endif
+215c337
+< 	&mini6410_device_eth,
+---
+> #ifdef CONFIG_MINI6410_SD_CH0
+216a339,340
+> #endif
+> #ifdef CONFIG_MINI6410_SD_CH1
+218c342,346
+< 	&s3c_device_ohci,
+---
+> #endif
+> 	&s3c_device_i2c0,
+> #ifdef CONFIG_S3C_DEV_I2C1
+> 	&s3c_device_i2c1,
+> #endif
+220a349,357
+> 	&s3c_device_ohci,
+> 	&s3c_device_usb_hsotg,
+> #ifdef CONFIG_SND_SAMSUNG_AC97
+> 	&s3c64xx_device_ac97,
+> #else
+> 	&s3c64xx_device_iisv4,
+> #endif
+> 	&samsung_asoc_dma,
+> 
+221a359,363
+> 
+> #ifdef CONFIG_DM9000
+> 	&s3c_device_dm9000,
+> #endif
+> #ifdef CONFIG_S3C_ADC
+222a365,366
+> #endif
+> #if defined(CONFIG_TOUCHSCREEN_MINI6410) || defined(CONFIG_SAMSUNG_DEV_TS)
+223a368,394
+> #endif
+> 	&s3c_device_wdt,
+> #ifdef CONFIG_S3C_DEV_RTC
+> 	&s3c_device_rtc,
+> #endif
+> 
+> 	/* Multimedia support */
+> #ifdef CONFIG_VIDEO_SAMSUNG
+> 	&s3c_device_vpp,
+> 	&s3c_device_mfc,
+> 	&s3c_device_tvenc,
+> 	&s3c_device_tvscaler,
+> 	&s3c_device_rotator,
+> 	&s3c_device_jpeg,
+> 	&s3c_device_fimc0,
+> 	&s3c_device_fimc1,
+> 	&s3c_device_g2d,
+> 	&s3c_device_g3d,
+> #endif
+> };
+> 
+> static struct i2c_board_info i2c_devs0[] __initdata = {
+> 	{ I2C_BOARD_INFO("ov965x", 0x30), },
+> };
+> 
+> static struct i2c_board_info i2c_devs1[] __initdata = {
+> 	/* Add your i2c device here */
+225a397,414
+> #ifdef CONFIG_SAMSUNG_DEV_TS
+> static struct s3c2410_ts_mach_info s3c_ts_platform __initdata = {
+> 	.delay			= 10000,
+> 	.presc			= 49,
+> 	.oversampling_shift	= 2,
+> };
+> #endif
+> 
+> #ifdef CONFIG_TOUCHSCREEN_MINI6410
+> static struct s3c_ts_mach_info s3c_ts_platform __initdata = {
+> 	.delay			= 0xFFFF,
+> 	.presc			= 0xFF,
+> 	.oversampling_shift	= 2,
+> 	.resol_bit		= 12,
+> 	.s3c_adc_con	= ADC_TYPE_2,
+> };
+> #endif
+> 
+230c419
+< 	s3c64xx_init_io(NULL, 0);
+---
+> 	s3c64xx_init_io(mini6410_iodesc, ARRAY_SIZE(mini6410_iodesc));
+234a424
+> 
+240c430
+< 	/* remove the LCD bypass */
+---
+> 	/* remove the lcd bypass */
+244,252d433
+< }
+< 
+< /*
+<  * mini6410_features string
+<  *
+<  * 0-9 LCD configuration
+<  *
+<  */
+< static char mini6410_features_str[12] __initdata = "0";
+254,300c435,437
+< static int __init mini6410_features_setup(char *str)
+< {
+< 	if (str)
+< 		strlcpy(mini6410_features_str, str,
+< 			sizeof(mini6410_features_str));
+< 	return 1;
+< }
+< 
+< __setup("mini6410=", mini6410_features_setup);
+< 
+< #define FEATURE_SCREEN (1 << 0)
+< 
+< struct mini6410_features_t {
+< 	int done;
+< 	int lcd_index;
+< };
+< 
+< static void mini6410_parse_features(
+< 		struct mini6410_features_t *features,
+< 		const char *features_str)
+< {
+< 	const char *fp = features_str;
+< 
+< 	features->done = 0;
+< 	features->lcd_index = 0;
+< 
+< 	while (*fp) {
+< 		char f = *fp++;
+< 
+< 		switch (f) {
+< 		case '0'...'9':	/* tft screen */
+< 			if (features->done & FEATURE_SCREEN) {
+< 				printk(KERN_INFO "MINI6410: '%c' ignored, "
+< 					"screen type already set\n", f);
+< 			} else {
+< 				int li = f - '0';
+< 				if (li >= ARRAY_SIZE(mini6410_fb_win))
+< 					printk(KERN_INFO "MINI6410: '%c' out "
+< 						"of range LCD mode\n", f);
+< 				else {
+< 					features->lcd_index = li;
+< 				}
+< 			}
+< 			features->done |= FEATURE_SCREEN;
+< 			break;
+< 		}
+< 	}
+---
+> #ifdef CONFIG_VIDEO_SAMSUNG
+> 	s3c64xx_reserve_bootmem();
+> #endif
+306,314d442
+< 	struct mini6410_features_t features = { 0 };
+< 
+< 	printk(KERN_INFO "MINI6410: Option string mini6410=%s\n",
+< 			mini6410_features_str);
+< 
+< 	/* Parse the feature string */
+< 	mini6410_parse_features(&features, mini6410_features_str);
+< 
+< 	mini6410_lcd_pdata.win[0] = &mini6410_fb_win[features.lcd_index];
+316,318c444,447
+< 	printk(KERN_INFO "MINI6410: selected LCD display is %dx%d\n",
+< 		mini6410_lcd_pdata.win[0]->win_mode.xres,
+< 		mini6410_lcd_pdata.win[0]->win_mode.yres);
+---
+> 	s3c_i2c0_set_platdata(NULL);
+> #ifdef CONFIG_S3C_DEV_I2C1
+> 	s3c_i2c1_set_platdata(NULL);
+> #endif
+320d448
+< 	s3c_nand_set_platdata(&mini6410_nand_info);
+321a450,451
+> 
+> #ifdef CONFIG_SAMSUNG_DEV_TS
+322a453,466
+> #endif
+> #ifdef CONFIG_TOUCHSCREEN_MINI6410
+> 	s3c_ts_set_platdata(&s3c_ts_platform);
+> #endif
+> 
+> 	s3c_sdhci0_set_platdata(&mini6410_hsmmc0_pdata);
+> 	s3c_sdhci1_set_platdata(&mini6410_hsmmc1_pdata);
+> 
+> #ifdef CONFIG_MTD_NAND_S3C
+> 	s3c_device_nand.name = "s3c6410-nand";
+> #endif
+> 	s3c_nand_set_platdata(&mini6410_nand_info);
+> 
+> 	s3c64xx_ac97_setup_gpio(0);
+327c471
+< 		~(S3C64XX_SROM_BW__CS_MASK << S3C64XX_SROM_BW__NCS1__SHIFT);
+---
+> 		    ~(S3C64XX_SROM_BW__CS_MASK << S3C64XX_SROM_BW__NCS1__SHIFT);
+331c475
+< 			S3C64XX_SROM_BW__NCS1__SHIFT;
+---
+> 						   S3C64XX_SROM_BW__NCS1__SHIFT;
+337,342c481,486
+< 		(6 << S3C64XX_SROM_BCX__TACP__SHIFT) |
+< 		(4 << S3C64XX_SROM_BCX__TCAH__SHIFT) |
+< 		(1 << S3C64XX_SROM_BCX__TCOH__SHIFT) |
+< 		(13 << S3C64XX_SROM_BCX__TACC__SHIFT) |
+< 		(4 << S3C64XX_SROM_BCX__TCOS__SHIFT) |
+< 		(0 << S3C64XX_SROM_BCX__TACS__SHIFT), S3C64XX_SROM_BC1);
+---
+> 		     (6 << S3C64XX_SROM_BCX__TACP__SHIFT) |
+> 		     (4 << S3C64XX_SROM_BCX__TCAH__SHIFT) |
+> 		     (1 << S3C64XX_SROM_BCX__TCOH__SHIFT) |
+> 		     (0xe << S3C64XX_SROM_BCX__TACC__SHIFT) |
+> 		     (4 << S3C64XX_SROM_BCX__TCOS__SHIFT) |
+> 		     (0 << S3C64XX_SROM_BCX__TACS__SHIFT), S3C64XX_SROM_BC1);
+343a488,489
+> 	gpio_request(S3C64XX_GPN(5), "LCD power");
+> 	gpio_request(S3C64XX_GPF(13), "LCD power");
+345c491,504
+< 	gpio_request(S3C64XX_GPE(0), "LCD power");
+---
+> 
+> 	if (ARRAY_SIZE(i2c_devs0)) {
+> 		i2c_register_board_info(0, i2c_devs0, ARRAY_SIZE(i2c_devs0));
+> 	}
+> 	if (ARRAY_SIZE(i2c_devs1)) {
+> 		i2c_register_board_info(1, i2c_devs1, ARRAY_SIZE(i2c_devs1));
+> 	}
+> 
+> #ifdef CONFIG_S3C64XX_DEV_FIMC0
+> 	s3c_fimc0_set_platdata(NULL);
+> #endif
+> #ifdef CONFIG_S3C64XX_DEV_FIMC1
+> 	s3c_fimc1_set_platdata(NULL);
+> #endif
+347a507,510
+> 
+> #ifdef CONFIG_VIDEO_SAMSUNG
+> 	create_proc_read_entry("videomem", 0, NULL, s3c_media_read_proc, NULL);
+> #endif
+351c514
+< 	/* Maintainer: Darius Augulis <augulis.darius@gmail.com> */
+---
+> 	/* Maintainer: Ben Dooks <ben-linux@fluff.org> */
+352a516
+> 
+Only in fa-linux-2.6.38/arch/arm/mach-s3c64xx: mini6410-lcds.c
+diff -r linux-2.6.38/arch/arm/plat-samsung/Kconfig fa-linux-2.6.38/arch/arm/plat-samsung/Kconfig
+275a276,297
+> config S3C64XX_DEV_FIMC0
+> 	bool
+> 	help
+> 	  Compile in platform device definitions for FIMC controller 0
+> 
+> config S3C64XX_DEV_FIMC1
+> 	bool
+> 	help
+> 	  Compile in platform device definitions for FIMC controller 1
+> 
+> config S3C64XX_SETUP_FIMC0
+> 	bool
+> 	default y if S3C64XX_DEV_FIMC0
+> 	help
+> 	  Common setup code for FIMC controller 0
+> 
+> config S3C64XX_SETUP_FIMC1
+> 	bool
+> 	default y if S3C64XX_DEV_FIMC1
+> 	help
+> 	  Common setup code for FIMC controller 1
+> 
+diff -r linux-2.6.38/arch/arm/plat-samsung/Makefile fa-linux-2.6.38/arch/arm/plat-samsung/Makefile
+62a63,71
+> ifdef CONFIG_VIDEO_SAMSUNG
+> obj-y				+= bootmem.o
+> obj-y				+= dev-video.o
+> endif
+> obj-$(CONFIG_S3C64XX_DEV_FIMC0)	+= dev-fimc0.o
+> obj-$(CONFIG_S3C64XX_DEV_FIMC1)	+= dev-fimc1.o
+> obj-$(CONFIG_S3C64XX_SETUP_FIMC0)	+= setup-fimc0.o
+> obj-$(CONFIG_S3C64XX_SETUP_FIMC1)	+= setup-fimc1.o
+> 
+Only in fa-linux-2.6.38/arch/arm/plat-samsung: bootmem.c
+Only in fa-linux-2.6.38/arch/arm/plat-samsung: dev-fimc0.c
+Only in fa-linux-2.6.38/arch/arm/plat-samsung: dev-fimc1.c
+Only in fa-linux-2.6.38/arch/arm/plat-samsung: dev-video.c
+Only in fa-linux-2.6.38/arch/arm/plat-samsung/include/plat: ctouch.h
+diff -r linux-2.6.38/arch/arm/plat-samsung/include/plat/devs.h fa-linux-2.6.38/arch/arm/plat-samsung/include/plat/devs.h
+132a133,143
+> extern struct platform_device s3c_device_g2d;
+> extern struct platform_device s3c_device_g3d;
+> extern struct platform_device s3c_device_vpp;
+> extern struct platform_device s3c_device_tvenc;
+> extern struct platform_device s3c_device_tvscaler;
+> extern struct platform_device s3c_device_rotator;
+> extern struct platform_device s3c_device_jpeg;
+> extern struct platform_device s3c_device_fimc0;
+> extern struct platform_device s3c_device_fimc1;
+> extern struct platform_device s3c_device_mfc;
+> 
+Only in fa-linux-2.6.38/arch/arm/plat-samsung/include/plat: fimc.h
+diff -r linux-2.6.38/arch/arm/plat-samsung/include/plat/map-base.h fa-linux-2.6.38/arch/arm/plat-samsung/include/plat/map-base.h
+1c1
+< /* linux/include/asm-arm/plat-s3c/map.h
+---
+> /* linux/arch/arm/plat-samsung/include/plat/map-base.h
+38a39
+> #define S3C_VA_LCD 	S3C_ADDR(0x01100000)	/* LCD */
+Only in fa-linux-2.6.38/arch/arm/plat-samsung/include/plat: media.h
+diff -r linux-2.6.38/arch/arm/plat-samsung/include/plat/pll6553x.h fa-linux-2.6.38/arch/arm/plat-samsung/include/plat/pll6553x.h
+18,20c18,20
+< #define PLL6553X_MDIV_MASK	((1 << (23-16)) - 1)
+< #define PLL6553X_PDIV_MASK	((1 << (13-8)) - 1)
+< #define PLL6553X_SDIV_MASK	((1 << (2-0)) - 1)
+---
+> #define PLL6553X_MDIV_MASK	((1 << (23-16+1)) - 1)
+> #define PLL6553X_PDIV_MASK	((1 << (13-8+1)) - 1)
+> #define PLL6553X_SDIV_MASK	((1 << (2-0+1)) - 1)
+diff -r linux-2.6.38/arch/arm/plat-samsung/include/plat/regs-adc.h fa-linux-2.6.38/arch/arm/plat-samsung/include/plat/regs-adc.h
+14a15
+> 
+62d62
+< #endif /* __ASM_ARCH_REGS_ADC_H */
+63a64,122
+> /*--------------------------- Common definitions for S3C  ---------------------------*/
+> /* The following definitions will be applied to S3C24XX, S3C64XX, S5PC1XX.	     */
+> /*-----------------------------------------------------------------------------------*/
+> 
+> #define S3C_ADCREG(x) 			(x)
+> 
+> #define S3C_ADCCON	   		S3C_ADCREG(0x00)
+> #define S3C_ADCTSC	  		S3C_ADCREG(0x04)
+> #define S3C_ADCDLY	   		S3C_ADCREG(0x08)
+> #define S3C_ADCDAT0	   		S3C_ADCREG(0x0C)
+> #define S3C_ADCDAT1	   		S3C_ADCREG(0x10)
+> #define S3C_ADCUPDN			S3C_ADCREG(0x14)
+> #define S3C_ADCCLRINT			S3C_ADCREG(0x18)
+> #define S3C_ADCMUX			S3C_ADCREG(0x1C)
+> #define S3C_ADCCLRWK			S3C_ADCREG(0x20)
+> 
+> /* ADCCON Register Bits */
+> #define S3C_ADCCON_RESSEL_10BIT		(0x0<<16)
+> #define S3C_ADCCON_RESSEL_12BIT		(0x1<<16)
+> #define S3C_ADCCON_ECFLG		(1<<15)
+> #define S3C_ADCCON_PRSCEN		(1<<14)
+> #define S3C_ADCCON_PRSCVL(x)		(((x)&0xFF)<<6)
+> #define S3C_ADCCON_PRSCVLMASK		(0xFF<<6)
+> #define S3C_ADCCON_SELMUX(x)		(((x)&0x7)<<3)
+> #define S3C_ADCCON_SELMUX_1(x)		(((x)&0xF)<<0)
+> #define S3C_ADCCON_MUXMASK		(0x7<<3)
+> #define S3C_ADCCON_RESSEL_10BIT_1	(0x0<<3)
+> #define S3C_ADCCON_RESSEL_12BIT_1	(0x1<<3)
+> #define S3C_ADCCON_STDBM		(1<<2)
+> #define S3C_ADCCON_READ_START		(1<<1)
+> #define S3C_ADCCON_ENABLE_START		(1<<0)
+> #define S3C_ADCCON_STARTMASK		(0x3<<0)
+> 
+> /* ADCTSC Register Bits */
+> #define S3C_ADCTSC_UD_SEN		(1<<8)
+> #define S3C_ADCTSC_YM_SEN		(1<<7)
+> #define S3C_ADCTSC_YP_SEN		(1<<6)
+> #define S3C_ADCTSC_XM_SEN		(1<<5)
+> #define S3C_ADCTSC_XP_SEN		(1<<4)
+> #define S3C_ADCTSC_PULL_UP_DISABLE	(1<<3)
+> #define S3C_ADCTSC_AUTO_PST		(1<<2)
+> #define S3C_ADCTSC_XY_PST(x)		(((x)&0x3)<<0)
+> 
+> /* ADCDAT0 Bits */
+> #define S3C_ADCDAT0_UPDOWN		(1<<15)
+> #define S3C_ADCDAT0_AUTO_PST		(1<<14)
+> #define S3C_ADCDAT0_XY_PST		(0x3<<12)
+> #define S3C_ADCDAT0_XPDATA_MASK		(0x03FF)
+> #define S3C_ADCDAT0_XPDATA_MASK_12BIT	(0x0FFF)
+> 
+> /* ADCDAT1 Bits */
+> #define S3C_ADCDAT1_UPDOWN		(1<<15)
+> #define S3C_ADCDAT1_AUTO_PST		(1<<14)
+> #define S3C_ADCDAT1_XY_PST		(0x3<<12)
+> #define S3C_ADCDAT1_YPDATA_MASK		(0x03FF)
+> #define S3C_ADCDAT1_YPDATA_MASK_12BIT	(0x0FFF)
+> 
+> 
+> #endif /* __ASM_ARCH_REGS_ADC_H */
+diff -r linux-2.6.38/arch/arm/plat-samsung/include/plat/regs-fb-v4.h fa-linux-2.6.38/arch/arm/plat-samsung/include/plat/regs-fb-v4.h
+35a36
+> #define VIDTCON3				(0x1C)
+diff -r linux-2.6.38/arch/arm/plat-samsung/include/plat/regs-nand.h fa-linux-2.6.38/arch/arm/plat-samsung/include/plat/regs-nand.h
+120a121,181
+> /* for s3c_nand.c */
+> #define S3C_NFCONF		S3C2410_NFREG(0x00)
+> #define S3C_NFCONT		S3C2410_NFREG(0x04)
+> #define S3C_NFCMMD		S3C2410_NFREG(0x08)
+> #define S3C_NFADDR		S3C2410_NFREG(0x0c)
+> #define S3C_NFDATA8		S3C2410_NFREG(0x10)
+> #define S3C_NFDATA		S3C2410_NFREG(0x10)
+> #define S3C_NFMECCDATA0		S3C2410_NFREG(0x14)
+> #define S3C_NFMECCDATA1		S3C2410_NFREG(0x18)
+> #define S3C_NFSECCDATA		S3C2410_NFREG(0x1c)
+> #define S3C_NFSBLK		S3C2410_NFREG(0x20)
+> #define S3C_NFEBLK		S3C2410_NFREG(0x24)
+> #define S3C_NFSTAT		S3C2410_NFREG(0x28)
+> #define S3C_NFMECCERR0		S3C2410_NFREG(0x2c)
+> #define S3C_NFMECCERR1		S3C2410_NFREG(0x30)
+> #define S3C_NFMECC0		S3C2410_NFREG(0x34)
+> #define S3C_NFMECC1		S3C2410_NFREG(0x38)
+> #define S3C_NFSECC		S3C2410_NFREG(0x3c)
+> #define S3C_NFMLCBITPT		S3C2410_NFREG(0x40)
+> #define S3C_NF8ECCERR0		S3C2410_NFREG(0x44)
+> #define S3C_NF8ECCERR1		S3C2410_NFREG(0x48)
+> #define S3C_NF8ECCERR2		S3C2410_NFREG(0x4c)
+> #define S3C_NFM8ECC0		S3C2410_NFREG(0x50)
+> #define S3C_NFM8ECC1		S3C2410_NFREG(0x54)
+> #define S3C_NFM8ECC2		S3C2410_NFREG(0x58)
+> #define S3C_NFM8ECC3		S3C2410_NFREG(0x5c)
+> #define S3C_NFMLC8BITPT0	S3C2410_NFREG(0x60)
+> #define S3C_NFMLC8BITPT1	S3C2410_NFREG(0x64)
+> 
+> #define S3C_NFCONF_NANDBOOT	(1<<31)
+> #define S3C_NFCONF_ECCCLKCON	(1<<30)
+> #define S3C_NFCONF_ECC_MLC	(1<<24)
+> #define S3C_NFCONF_ECC_1BIT	(0<<23)
+> #define S3C_NFCONF_ECC_4BIT	(2<<23)
+> #define S3C_NFCONF_ECC_8BIT	(1<<23)
+> #define S3C_NFCONF_TACLS(x)	((x)<<12)
+> #define S3C_NFCONF_TWRPH0(x)	((x)<<8)
+> #define S3C_NFCONF_TWRPH1(x)	((x)<<4)
+> #define S3C_NFCONF_ADVFLASH	(1<<3)
+> #define S3C_NFCONF_PAGESIZE	(1<<2)
+> #define S3C_NFCONF_ADDRCYCLE	(1<<1)
+> #define S3C_NFCONF_BUSWIDTH	(1<<0)
+> 
+> #define S3C_NFCONT_ECC_ENC	(1<<18)
+> #define S3C_NFCONT_LOCKTGHT	(1<<17)
+> #define S3C_NFCONT_LOCKSOFT	(1<<16)
+> #define S3C_NFCONT_8BITSTOP	(1<<11)
+> #define S3C_NFCONT_MECCLOCK	(1<<7)
+> #define S3C_NFCONT_SECCLOCK	(1<<6)
+> #define S3C_NFCONT_INITMECC	(1<<5)
+> #define S3C_NFCONT_INITSECC	(1<<4)
+> #define S3C_NFCONT_nFCE1	(1<<2)
+> #define S3C_NFCONT_nFCE0	(1<<1)
+> #define S3C_NFCONT_INITECC	(S3C_NFCONT_INITSECC | S3C_NFCONT_INITMECC)
+> 
+> #define S3C_NFSTAT_ECCENCDONE	(1<<7)
+> #define S3C_NFSTAT_ECCDECDONE	(1<<6)
+> #define S3C_NFSTAT_BUSY		(1<<0)
+> 
+> #define S3C_NFECCERR0_ECCBUSY	(1<<31)
+> 
+diff -r linux-2.6.38/arch/arm/plat-samsung/include/plat/regs-timer.h fa-linux-2.6.38/arch/arm/plat-samsung/include/plat/regs-timer.h
+1c1
+< /* arch/arm/mach-s3c2410/include/mach/regs-timer.h
+---
+> /* arch/arm/plat-samsung/include/mach/regs-timer.h
+121c121,184
+< #endif /*  __ASM_ARCH_REGS_TIMER_H */
+---
+> /* Interrupt Control and Status register*/
+> #define S3C_TINT_CSTAT_T4INT    (1<<9)
+> #define S3C_TINT_CSTAT_T3INT    (1<<8)
+> #define S3C_TINT_CSTAT_T2INT    (1<<7)
+> #define S3C_TINT_CSTAT_T1INT    (1<<6)
+> #define S3C_TINT_CSTAT_T0INT    (1<<5)
+> #define S3C_TINT_CSTAT_T4INTEN  (1<<4)
+> #define S3C_TINT_CSTAT_T3INTEN  (1<<3)
+> #define S3C_TINT_CSTAT_T2INTEN  (1<<2)
+> #define S3C_TINT_CSTAT_T1INTEN  (1<<1)
+> #define S3C_TINT_CSTAT_T0INTEN  (1<<0)
+> 
+> #if defined(CONFIG_PLAT_S3C64XX) || defined(CONFIG_PLAT_S5PC1XX) 
+> #define S3C_TCFG0       S3C_TIMERREG(0x00)
+> #define S3C_TCFG1       S3C_TIMERREG(0x04)
+> #define S3C_TCON        S3C_TIMERREG(0x08)
+> #define S3C_TINT_CSTAT  S3C_TIMERREG(0x44)
+> 
+> #define S3C_TCFG_PRESCALER0_MASK (255<<0)
+> #define S3C_TCFG_PRESCALER1_MASK (255<<8)
+> #define S3C_TCFG_PRESCALER1_SHIFT (8)
+> #define S3C_TCFG_PRESCALER0_SHIFT (0)
+> #define S3C_TCFG_DEADZONE_MASK   (255<<16)
+> #define S3C_TCFG_DEADZONE_SHIFT  (16)
+> 
+> #define S3C_TCFG1_MUX4_DIV1       (0<<16)
+> #define S3C_TCFG1_MUX4_DIV2       (1<<16)
+> #define S3C_TCFG1_MUX4_DIV4       (2<<16)
+> #define S3C_TCFG1_MUX4_DIV8       (3<<16)
+> #define S3C_TCFG1_MUX4_DIV16  (4<<16)
+> #define S3C_TCFG1_MUX4_TCLK1  (5<<16)
+> #define S3C_TCFG1_MUX4_MASK       (15<<16)
+> 
+> #define S3C_TCFG1_MUX3_DIV1       (0<<12)
+> #define S3C_TCFG1_MUX3_DIV2       (1<<12)
+> #define S3C_TCFG1_MUX3_DIV4       (2<<12)
+> #define S3C_TCFG1_MUX3_DIV8       (3<<12)
+> #define S3C_TCFG1_MUX3_DIV16  (4<<12)
+> #define S3C_TCFG1_MUX3_TCLK1  (5<<12)
+> #define S3C_TCFG1_MUX3_MASK       (15<<12)
+> 
+> #define S3C_TCFG1_MUX2_DIV1       (0<<8)
+> #define S3C_TCFG1_MUX2_DIV2       (1<<8)
+> #define S3C_TCFG1_MUX2_DIV4       (2<<8)
+> #define S3C_TCFG1_MUX2_DIV8       (3<<8)
+> #define S3C_TCFG1_MUX2_DIV16  (4<<8)
+> #define S3C_TCFG1_MUX2_TCLK1  (5<<8)
+> #define S3C_TCFG1_MUX2_MASK       (15<<8)
+> 
+> #define S3C_TCFG1_MUX1_DIV1       (0<<4)
+> #define S3C_TCFG1_MUX1_DIV2       (1<<4)
+> #define S3C_TCFG1_MUX1_DIV4       (2<<4)
+> #define S3C_TCFG1_MUX1_DIV8       (3<<4)
+> #define S3C_TCFG1_MUX1_DIV16  (4<<4)
+> #define S3C_TCFG1_MUX1_TCLK0  (5<<4)
+> #define S3C_TCFG1_MUX1_MASK       (15<<4)
+> 
+> #define S3C_TCFG1_MUX0_DIV1       (0<<0)
+> #define S3C_TCFG1_MUX0_DIV2       (1<<0)
+> #define S3C_TCFG1_MUX0_DIV4       (2<<0)
+> #define S3C_TCFG1_MUX0_DIV8       (3<<0)
+> #define S3C_TCFG1_MUX0_DIV16  (4<<0)
+> #define S3C_TCFG1_MUX0_TCLK0  (5<<0)
+> #define S3C_TCFG1_MUX0_MASK       (15<<0)
+122a186,188
+> /* for each timer, we have an count buffer, an compare buffer and
+>  * an observation buffer
+>  */
+123a190,223
+> /* WARNING - timer 4 has no buffer reg, and it's observation is at +4 */
+> /* 32bit timer used */
+> 
+> #define S3C_TCNTB(tmr)    S3C_TIMERREG2(tmr, 0x00)
+> #define S3C_TCMPB(tmr)    S3C_TIMERREG2(tmr, 0x04)
+> #define S3C_TCNTO(tmr)    S3C_TIMERREG2(tmr, (((tmr) == 4) ? 0x04 : 0x08))
+> 
+> #define S3C_TCON_T4RELOAD         (1<<22)
+> #define S3C_TCON_T4MANUALUPD  (1<<21)
+> #define S3C_TCON_T4START          (1<<20)
+> 
+> #define S3C_TCON_T3RELOAD         (1<<19)
+> #define S3C_TCON_T3INVERT         (1<<18)
+> #define S3C_TCON_T3MANUALUPD  (1<<17)
+> #define S3C_TCON_T3START          (1<<16)
+> 
+> #define S3C_TCON_T2RELOAD         (1<<15)
+> #define S3C_TCON_T2INVERT         (1<<14)
+> #define S3C_TCON_T2MANUALUPD  (1<<13)
+> #define S3C_TCON_T2START          (1<<12)
+> 
+> #define S3C_TCON_T1RELOAD         (1<<11)
+> #define S3C_TCON_T1INVERT         (1<<10)
+> #define S3C_TCON_T1MANUALUPD  (1<<9)
+> #define S3C_TCON_T1START          (1<<8)
+> 
+> #define S3C_TCON_T0DEADZONE       (1<<4)
+> #define S3C_TCON_T0RELOAD         (1<<3)
+> #define S3C_TCON_T0INVERT         (1<<2)
+> #define S3C_TCON_T0MANUALUPD  (1<<1)
+> #define S3C_TCON_T0START          (1<<0)
+> #endif /*  defined(CONFIG_PLAT_S3C64XX) || defined(CONFIG_PLAT_S5PC1XX) */
+> 
+> #endif /*  __ASM_ARCH_REGS_TIMER_H */
+diff -r linux-2.6.38/arch/arm/plat-samsung/include/plat/regs-usb-hsotg-phy.h fa-linux-2.6.38/arch/arm/plat-samsung/include/plat/regs-usb-hsotg-phy.h
+30c30
+< #define SRC_PHYPWR_FORCE_SUSPEND		(1 << 1)
+---
+> #define SRC_PHYPWR_FORCE_SUSPEND		(1 << 0)
+Only in fa-linux-2.6.38/arch/arm/plat-samsung: setup-fimc0.c
+Only in fa-linux-2.6.38/arch/arm/plat-samsung: setup-fimc1.c
+Only in linux-2.6.38/arch/microblaze/boot: dts
+Only in fa-linux-2.6.38/: build
+Only in fa-linux-2.6.38/: config_linux_mini6410
+diff -r linux-2.6.38/drivers/char/Kconfig fa-linux-2.6.38/drivers/char/Kconfig
+99a100,134
+> config MINI6410_LEDS
+> 	tristate "LED Support for Mini6410 GPIO LEDs"
+> 	depends on CPU_S3C6410
+> 	default y
+> 	help
+> 	  This option enables support for LEDs connected to GPIO lines
+> 	  on Mini6410 boards.
+> 
+> config MINI6410_HELLO_MODULE
+> 	tristate "Mini6410 module sample"
+> 	depends on CPU_S3C6410
+> 	help
+> 	  Mini6410 module sample.
+> 
+> config MINI6410_BUTTONS
+> 	tristate "Buttons driver for FriendlyARM Mini6410 development boards"
+> 	depends on CPU_S3C6410
+> 	default y
+> 	help
+> 	  this is buttons driver for FriendlyARM Mini6410 development boards
+> 
+> config MINI6410_BUZZER
+> 	tristate "Buzzer driver for FriendlyARM Mini6410 development boards"
+> 	depends on CPU_S3C6410
+> 	default y
+> 	help
+> 	  this is buzzer driver for FriendlyARM Mini6410 development boards
+> 
+> config MINI6410_ADC
+> 	bool "ADC driver for FriendlyARM Mini6410 development boards"
+> 	depends on MACH_MINI6410
+> 	default y if MACH_MINI6410
+> 	help
+> 	  this is ADC driver for FriendlyARM Mini6410 development boards
+> 
+diff -r linux-2.6.38/drivers/char/Makefile fa-linux-2.6.38/drivers/char/Makefile
+88a89,95
+> 
+> obj-$(CONFIG_MINI6410_LEDS)	+= mini6410_leds.o
+> obj-$(CONFIG_MINI6410_HELLO_MODULE)	+= mini6410_hello_module.o
+> obj-$(CONFIG_MINI6410_BUTTONS)	+= mini6410_buttons.o
+> obj-$(CONFIG_MINI6410_BUZZER)	+= mini6410_pwm.o
+> obj-$(CONFIG_MINI6410_ADC)		+= mini6410_adc.o
+> 
+Only in fa-linux-2.6.38/drivers/char: mini6410_adc.c
+Only in fa-linux-2.6.38/drivers/char: mini6410_buttons.c
+Only in fa-linux-2.6.38/drivers/char: mini6410_hello_module.c
+Only in fa-linux-2.6.38/drivers/char: mini6410_leds.c
+Only in fa-linux-2.6.38/drivers/char: mini6410_pwm.c
+diff -r linux-2.6.38/drivers/input/touchscreen/Kconfig fa-linux-2.6.38/drivers/input/touchscreen/Kconfig
+192a193,221
+> config TOUCHSCREEN_MINI6410
+> 	tristate "S3C touchscreen driver for Mini6410"
+> 	depends on ARCH_S3C2410 || ARCH_S3C64XX || ARCH_S5P64XX || ARCH_S5PC1XX
+> 	default y
+> 	help
+> 	  Say Y here to enable the driver for the touchscreen on the
+> 	  FriendlyARM Mini6410 development board.
+> 
+> 	  If unsure, say N.
+> 
+> 	  To compile this driver as a module, choose M here: the
+> 	  module will be called mini6410-ts.
+> 
+> config TOUCHSCREEN_1WIRE
+> 	tristate "Mini6410 1-Wire host and Touch Screen Driver"
+> 	depends on MACH_MINI6410
+> 	help
+> 	  Say Y here to enable the 1-Wire host and Touch Screen driver for
+> 	  FriendlyARM Mini6410 development board.
+> 
+> 	  If unsure, say N.
+> 
+> 	  To compile this driver as a module, choose M here: the
+> 	  module will be called mini6410_1wire_host.
+> 
+> config TOUCHSCREEN_IF
+> 	bool
+> 	default y if TOUCHSCREEN_1WIRE
+> 
+diff -r linux-2.6.38/drivers/input/touchscreen/Makefile fa-linux-2.6.38/drivers/input/touchscreen/Makefile
+59a60,62
+> obj-$(CONFIG_TOUCHSCREEN_MINI6410)	+= mini6410-ts.o
+> obj-$(CONFIG_TOUCHSCREEN_1WIRE)		+= mini6410_1wire_host.o
+> obj-$(CONFIG_TOUCHSCREEN_IF)		+= ts-if.o
+Only in fa-linux-2.6.38/drivers/input/touchscreen: mini6410-ts.c
+Only in fa-linux-2.6.38/drivers/input/touchscreen: mini6410_1wire_host.c
+Only in fa-linux-2.6.38/drivers/input/touchscreen: ts-if.c
+diff -r linux-2.6.38/drivers/media/video/Kconfig fa-linux-2.6.38/drivers/media/video/Kconfig
+952a953,955
+> 
+> source "drivers/media/video/samsung/Kconfig"
+> 
+diff -r linux-2.6.38/drivers/media/video/Makefile fa-linux-2.6.38/drivers/media/video/Makefile
+157a158
+> obj-$(CONFIG_VIDEO_SAMSUNG)		+= samsung/
+Only in fa-linux-2.6.38/drivers/media/video: samsung
+diff -r linux-2.6.38/drivers/mmc/host/sdhci-s3c.c fa-linux-2.6.38/drivers/mmc/host/sdhci-s3c.c
+508a509,511
+> 	if (pdata->host_caps & MMC_CAP_NEEDS_POLL)
+> 		host->mmc->caps = MMC_CAP_NEEDS_POLL;
+> 
+diff -r linux-2.6.38/drivers/mmc/host/sdhci.c fa-linux-2.6.38/drivers/mmc/host/sdhci.c
+1880c1880
+< 
+---
+>  
+1896a1897,1898
+> 	/* It's not a good assumption, disable it for FriendlyARM mini6410 */
+> #ifndef CONFIG_MACH_MINI6410
+1898c1900
+< 	    mmc_card_is_removable(mmc))
+---
+> 			mmc_card_is_removable(mmc))
+1899a1902
+> #endif
+diff -r linux-2.6.38/drivers/mtd/nand/Kconfig fa-linux-2.6.38/drivers/mtd/nand/Kconfig
+237a238,265
+> config MTD_NAND_S3C
+> 	tristate "NAND Flash support for S3C SoC"
+> 	depends on (ARCH_S3C64XX || ARCH_S5P64XX || ARCH_S5PC1XX) && MTD_NAND
+> 	help
+> 	  This enables the NAND flash controller on the S3C.
+> 
+> 	  No board specfic support is done by this driver, each board
+> 	  must advertise a platform_device for the driver to attach.
+> 
+> config MTD_NAND_S3C_DEBUG
+> 	bool "S3C NAND driver debug"
+> 	depends on MTD_NAND_S3C
+> 	help
+> 	  Enable debugging of the S3C NAND driver
+> 
+> config MTD_NAND_S3C_HWECC
+> 	bool "S3C NAND Hardware ECC"
+> 	depends on MTD_NAND_S3C
+> 	help
+> 	  Enable the use of the S3C's internal ECC generator when
+> 	  using NAND. Early versions of the chip have had problems with
+> 	  incorrect ECC generation, and if using these, the default of
+> 	  software ECC is preferable.
+> 
+> 	  If you lay down a device with the hardware ECC, then you will
+> 	  currently not be able to switch to software, as there is no
+> 	  implementation for ECC method used by the S3C
+> 
+diff -r linux-2.6.38/drivers/mtd/nand/Makefile fa-linux-2.6.38/drivers/mtd/nand/Makefile
+19a20
+> obj-$(CONFIG_MTD_NAND_S3C)			+= s3c_nand.o
+52a54,61
+> 
+> S3C_NAND_MLC_SRC = $(shell ls drivers/mtd/nand/s3c_nand_mlc.c 2>/dev/null)
+> ifeq ($(S3C_NAND_MLC_SRC),) 
+> obj-$(CONFIG_MTD_NAND_S3C)			+= s3c_nand_mlc.fo
+> else
+> obj-$(CONFIG_MTD_NAND_S3C)			+= s3c_nand_mlc.o
+> endif
+> 
+diff -r linux-2.6.38/drivers/mtd/nand/nand_base.c fa-linux-2.6.38/drivers/mtd/nand/nand_base.c
+345c345
+< 	int page, chipnr, res = 0;
+---
+> 	int page, res = 0;
+353a354,355
+> #if 0
+> 	/* Moved to nand_block_checkbad() for chip specify support */
+361a364
+> #endif
+380a384
+> #if 0
+382a387
+> #endif
+479a485,490
+> 	int chipnr, res = 0;
+> 
+> 	/* Chip specify block_bad() support */
+> 	if (!chip->bbt) {
+> 		if (getchip) {
+> 			chipnr = (int)(ofs >> chip->chip_shift);
+481,482c492,504
+< 	if (!chip->bbt)
+< 		return chip->block_bad(mtd, ofs, getchip);
+---
+> 			nand_get_device(chip, mtd, FL_READING);
+> 
+> 			/* Select the NAND device */
+> 			chip->select_chip(mtd, chipnr);
+> 		}
+> 
+> 		res = chip->block_bad(mtd, ofs, getchip);
+> 
+> 		if (getchip)
+> 			nand_release_device(mtd);
+> 
+> 		return res;
+> 	}
+3004a3027
+> 			int __oobsz[] = { 0, 128, 218, 400 };
+3009,3019c3032
+< 			switch (extid & 0x03) {
+< 			case 1:
+< 				mtd->oobsize = 128;
+< 				break;
+< 			case 2:
+< 				mtd->oobsize = 218;
+< 				break;
+< 			case 3:
+< 				mtd->oobsize = 400;
+< 				break;
+< 			default:
+---
+> 			if (extid & 0x10) {
+3021c3034,3035
+< 				break;
+---
+> 			} else {
+> 				mtd->oobsize = __oobsz[(extid & 0x03)];
+3101a3116
+> 
+3103c3118,3120
+< 	chip->pagemask = (chip->chipsize >> chip->page_shift) - 1;
+---
+> 	if (!chip->pagemask) {
+> 		chip->pagemask = (chip->chipsize >> chip->page_shift) - 1;
+> 	}
+3107,3111c3124,3130
+< 	if (chip->chipsize & 0xffffffff)
+< 		chip->chip_shift = ffs((unsigned)chip->chipsize) - 1;
+< 	else {
+< 		chip->chip_shift = ffs((unsigned)(chip->chipsize >> 32));
+< 		chip->chip_shift += 32 - 1;
+---
+> 	if (!chip->chip_shift) {
+> 		if (chip->chipsize & 0xffffffff)
+> 			chip->chip_shift = ffs((unsigned)chip->chipsize) - 1;
+> 		else {
+> 			chip->chip_shift = ffs((unsigned)(chip->chipsize >> 32));
+> 			chip->chip_shift += 32 - 1;
+> 		}
+3129,3130c3148,3152
+< 			 *maf_id == NAND_MFR_HYNIX))
+< 		chip->options |= NAND_BBT_SCANLASTPAGE;
+---
+> 			 *maf_id == NAND_MFR_HYNIX)) {
+> 		if (mtd->writesize < 4096) {
+> 			chip->options |= NAND_BBT_SCANLASTPAGE;
+> 		}
+> 	}
+Only in fa-linux-2.6.38/drivers/mtd/nand: s3c_nand.c
+Only in fa-linux-2.6.38/drivers/mtd/nand: s3c_nand_mlc.fo
+diff -r linux-2.6.38/drivers/net/dm9000.c fa-linux-2.6.38/drivers/net/dm9000.c
+1582a1583
+> 	/* try MAC address passed by kernel command line */
+1584,1585c1585,1586
+< 		mac_src = "platform data";
+< 		memcpy(ndev->dev_addr, pdata->dev_addr, 6);
+---
+> 		mac_src = "param data";
+> 		memcpy(ndev->dev_addr, pdata->param_addr, 6);
+1590d1590
+< 		
+1593a1594,1598
+> 	}
+> 
+> 	if (!is_valid_ether_addr(ndev->dev_addr) && pdata != NULL) {
+> 		mac_src = "platform data";
+> 		memcpy(ndev->dev_addr, pdata->dev_addr, 6);
+diff -r linux-2.6.38/drivers/net/wireless/ath/ath9k/hif_usb.c fa-linux-2.6.38/drivers/net/wireless/ath/ath9k/hif_usb.c
+903a904,919
+> 		if (((endp->bEndpointAddress & USB_ENDPOINT_NUMBER_MASK)
+> 					== 0x04) &&
+> 				((endp->bmAttributes & USB_ENDPOINT_XFERTYPE_MASK)
+> 				 == USB_ENDPOINT_XFER_INT)) {
+> 			endp->bmAttributes &= ~USB_ENDPOINT_XFERTYPE_MASK;
+> 			endp->bmAttributes |= USB_ENDPOINT_XFER_BULK;
+> 			endp->bInterval = 0;
+> 		}
+> 	}
+> 
+> 	/* On downloading the firmware to the target, the USB descriptor of EP4
+> 	 * is 'patched' to change the type of the endpoint to Bulk. This will
+> 	 * bring down CPU usage during the scan period.
+> 	 */
+> 	for (idx = 0; idx < alt->desc.bNumEndpoints; idx++) {
+> 		endp = &alt->endpoint[idx].desc;
+diff -r linux-2.6.38/drivers/usb/Makefile fa-linux-2.6.38/drivers/usb/Makefile
+25a26,27
+> obj-$(CONFIG_USB_SERIAL)	+= serial/
+> 
+40,41d41
+< 
+< obj-$(CONFIG_USB_SERIAL)	+= serial/
+diff -r linux-2.6.38/drivers/usb/host/ohci-s3c2410.c fa-linux-2.6.38/drivers/usb/host/ohci-s3c2410.c
+27a28,31
+> #ifdef CONFIG_MACH_MINI6410
+> extern void s3c_otg_phy_config(int enable);
+> #endif
+> 
+31c35
+< static struct clk *usb_clk;
+---
+> static struct clk *otg_clk, *usb_clk;
+49a54,58
+> 	clk_enable(otg_clk);
+> #ifdef CONFIG_MACH_MINI6410
+> 	s3c_otg_phy_config(1);
+> #endif
+> 
+81a91
+> 	clk_disable(otg_clk);
+377a388,394
+> 	otg_clk = clk_get(&dev->dev, "otg");
+> 	if (IS_ERR(otg_clk)) {
+> 		dev_err(&dev->dev, "cannot get otg clock\n");
+> 		retval = -ENOENT;
+> 		goto err_otg;
+> 	}
+> 
+397a415,418
+> 
+> 	clk_put(otg_clk);
+> 
+>  err_otg:
+Only in fa-linux-2.6.38/drivers/usb/serial: 3g_devices.c
+diff -r linux-2.6.38/drivers/usb/serial/Makefile fa-linux-2.6.38/drivers/usb/serial/Makefile
+13a14,15
+> obj-$(CONFIG_USB_SERIAL_OPTION)			+= option.o
+> obj-$(CONFIG_USB_SERIAL_WWAN)			+= usb_wwan.o
+45d46
+< obj-$(CONFIG_USB_SERIAL_OPTION)			+= option.o
+57d57
+< obj-$(CONFIG_USB_SERIAL_WWAN)			+= usb_wwan.o
+diff -r linux-2.6.38/drivers/usb/serial/option.c fa-linux-2.6.38/drivers/usb/serial/option.c
+151a152
+> #define HUAWEI_PRODUCT_E353			0x1506
+313,315c314,322
+< /* ZTE PRODUCTS -- alternate vendor ID */
+< #define ZTE_VENDOR_ID2				0x1d6b
+< #define ZTE_PRODUCT_MF_330			0x0002
+---
+> /* for PCIe 3G */
+> #define ZTE_PRODUCT_MC2700   0xffed
+> #define ZTE_PRODUCT_AD3812V2  0xffeb
+> #define ZTE_PRODUCT_M305    0x1303
+> /* LONGUNG T5300 */
+> #define LONGUNG_VENDOR_ID               0x04cc
+> #define LONGUNG_PRODUCT_T5300           0x2263
+> /* LONGGHEER  C5300 */
+> #define FOUR_G_SYSTEMS_PRODUCT_W14_C5300 0x9e00
+341a349
+> #define ALINK_PRODUCT_PH300			0x9100
+346c354
+< #define ALCATEL_PRODUCT_X060S			0x0000
+---
+> #define ALCATEL_PRODUCT_X060S_X200		0x0000
+380a389,391
+> /* Zoom */
+> #define ZOOM_PRODUCT_4597			0x9607
+> 
+409a421,424
+> /* Samsung products */
+> #define SAMSUNG_VENDOR_ID                       0x04e8
+> #define SAMSUNG_PRODUCT_GT_B3730                0x6889
+> 
+429a445,458
+> static const u8 alcatel_x200_no_sendsetup[] = { 0, 1 };
+> static const struct option_blacklist_info alcatel_x200_blacklist = {
+> 	.infolen = ARRAY_SIZE(alcatel_x200_no_sendsetup),
+> 	.ifaceinfo = alcatel_x200_no_sendsetup,
+> 	.reason = OPTION_BLACKLIST_SENDSETUP
+> };
+> 
+> static const u8 zte_k3765_z_no_sendsetup[] = { 0, 1, 2 };
+> static const struct option_blacklist_info zte_k3765_z_blacklist = {
+> 	.infolen = ARRAY_SIZE(zte_k3765_z_no_sendsetup),
+> 	.ifaceinfo = zte_k3765_z_no_sendsetup,
+> 	.reason = OPTION_BLACKLIST_SENDSETUP
+> };
+> 
+530a560
+> 	{ USB_DEVICE_AND_INTERFACE_INFO(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_E353, 0xff, 0x01, 0x01) },
+655c685,686
+< 	{ USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, ZTE_PRODUCT_MF626, 0xff, 0xff, 0xff) },
+---
+> 	{ USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, ZTE_PRODUCT_MF626, 0xff,
+> 	  0xff, 0xff), .driver_info = (kernel_ulong_t)&four_g_w14_blacklist },
+912c943,944
+< 	{ USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, 0x2002, 0xff, 0xff, 0xff) },
+---
+> 	{ USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, 0x2002, 0xff,
+> 	  0xff, 0xff), .driver_info = (kernel_ulong_t)&zte_k3765_z_blacklist },
+917,918c949,960
+< 	{ USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, ZTE_PRODUCT_AC8710T, 0xff, 0xff, 0xff) },
+< 	{ USB_DEVICE(ZTE_VENDOR_ID2, ZTE_PRODUCT_MF_330) },
+---
+>     { USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, ZTE_PRODUCT_AC8710T, 0xff, 0xff, 0xff) },
+> 
+>     { USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, ZTE_PRODUCT_MC2700, 0xff, 0xff, 0xff) },
+>     { USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, ZTE_PRODUCT_AD3812V2, 0xff, 0xff, 0xff) },
+>     { USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, ZTE_PRODUCT_M305, 0xff, 0xff, 0xff) },
+>     { USB_DEVICE(LONGUNG_VENDOR_ID, LONGUNG_PRODUCT_T5300),
+>         .driver_info = (kernel_ulong_t)&four_g_w14_blacklist
+>     },
+>     { USB_DEVICE(LONGCHEER_VENDOR_ID, FOUR_G_SYSTEMS_PRODUCT_W14_C5300),
+>         .driver_info = (kernel_ulong_t)&four_g_w14_blacklist
+>     },
+> 
+930a973
+> 	{ USB_DEVICE(ALINK_VENDOR_ID, ALINK_PRODUCT_PH300) },
+932c975,977
+< 	{ USB_DEVICE(ALCATEL_VENDOR_ID, ALCATEL_PRODUCT_X060S) },
+---
+> 	{ USB_DEVICE(ALCATEL_VENDOR_ID, ALCATEL_PRODUCT_X060S_X200),
+> 	  .driver_info = (kernel_ulong_t)&alcatel_x200_blacklist
+> 	},
+937a983
+> 	{ USB_DEVICE(LONGCHEER_VENDOR_ID, ZOOM_PRODUCT_4597) },
+969a1016,1017
+> 	{ USB_DEVICE_AND_INTERFACE_INFO(SAMSUNG_VENDOR_ID, SAMSUNG_PRODUCT_GT_B3730, USB_CLASS_CDC_DATA, 0x00, 0x00) }, /* Samsung GT-B3730 LTE USB modem.*/
+> #include "3g_devices.c"
+1103a1152,1157
+> 		return -ENODEV;
+> 
+> 	/* Don't bind network interface on Samsung GT-B3730, it is handled by a separate module */
+> 	if (serial->dev->descriptor.idVendor == SAMSUNG_VENDOR_ID &&
+> 		serial->dev->descriptor.idProduct == SAMSUNG_PRODUCT_GT_B3730 &&
+> 		serial->interface->cur_altsetting->desc.bInterfaceClass != USB_CLASS_CDC_DATA)
+diff -r linux-2.6.38/drivers/usb/serial/usb_wwan.c fa-linux-2.6.38/drivers/usb/serial/usb_wwan.c
+264c264,265
+< 				continue;
+---
+> 				usb_autopm_put_interface_async(port->serial->interface);
+> 				break;
+311,314c312,319
+< 			if (err && err != -EPERM)
+< 				printk(KERN_ERR "%s: resubmit read urb failed. "
+< 				       "(%d)", __func__, err);
+< 			else
+---
+> 			if (err) {
+> 				if (err != -EPERM) {
+> 					printk(KERN_ERR "%s: resubmit read urb failed. "
+> 						"(%d)", __func__, err);
+> 					/* busy also in error unless we are killed */
+> 					usb_mark_last_busy(port->serial->dev);
+> 				}
+> 			} else {
+315a321
+> 			}
+423a430
+> 	/* this balances a get in the generic USB serial code */
+450c457,458
+< 		usb_autopm_get_interface(serial->interface);
+---
+> 		/* balancing - important as an error cannot be handled*/
+> 		usb_autopm_get_interface_no_resume(serial->interface);
+663a672,683
+> static void unbusy_queued_urb(struct urb *urb, struct usb_wwan_port_private *portdata)
+> {
+> 	int i;
+> 
+> 	for (i = 0; i < N_OUT_URB; i++) {
+> 		if (urb == portdata->out_urbs[i]) {
+> 			clear_bit(i, &portdata->out_busy);
+> 			break;
+> 		}
+> 	}
+> }
+> 
+675c695
+< 		if (!err)
+---
+> 		if (!err) {
+676a697,704
+> 		} else {
+> 			/* we have to throw away the rest */
+> 			do {
+> 				unbusy_queued_urb(urb, portdata);
+> 				usb_autopm_put_interface_no_suspend(port->serial->interface);
+> 			} while ((urb = usb_get_from_anchor(&portdata->delayed)));
+> 			break;
+> 		}
+diff -r linux-2.6.38/drivers/video/Kconfig fa-linux-2.6.38/drivers/video/Kconfig
+2067a2068,2076
+> source "drivers/video/samsung/Kconfig"
+> 
+> config BACKLIGHT_FRIENDLY_ARM
+> 	tristate "Backlight support for FriendlyARM board"
+> 	depends on FB && ARCH_S3C64XX
+> 	default y
+> 	help
+> 	  backlight driver for FriendlyARM board
+> 
+diff -r linux-2.6.38/drivers/video/Makefile fa-linux-2.6.38/drivers/video/Makefile
+120a121
+> obj-$(CONFIG_FB_S3C_EXT)	  += samsung/
+161a163,165
+> 
+> # FriendlyARM support
+> obj-$(CONFIG_BACKLIGHT_FRIENDLY_ARM) += mini6410_backlight.o
+Only in fa-linux-2.6.38/drivers/video: mini6410_backlight.c
+Only in fa-linux-2.6.38/drivers/video: samsung
+diff -r linux-2.6.38/fs/Kconfig fa-linux-2.6.38/fs/Kconfig
+177a178,179
+> 
+> source "fs/yaffs2/Kconfig"
+diff -r linux-2.6.38/fs/Makefile fa-linux-2.6.38/fs/Makefile
+123a124,125
+> 
+> obj-$(CONFIG_YAFFS_FS)		+= yaffs2/
+Only in fa-linux-2.6.38/fs: yaffs2
+diff -r linux-2.6.38/include/linux/dm9000.h fa-linux-2.6.38/include/linux/dm9000.h
+30a31
+> 	unsigned char	param_addr[6];
+diff -r linux-2.6.38/include/linux/mtd/nand.h fa-linux-2.6.38/include/linux/mtd/nand.h
+59c59
+< #define NAND_MAX_OOBSIZE	576
+---
+> #define NAND_MAX_OOBSIZE	640
+diff -r linux-2.6.38/include/media/v4l2-dev.h fa-linux-2.6.38/include/media/v4l2-dev.h
+81a82,87
+> #ifdef CONFIG_VIDEO_SAMSUNG
+> 	/* added for TV */
+> 	int type2;
+> 	int users;
+> #endif
+> 
+diff -r linux-2.6.38/include/mtd/mtd-abi.h fa-linux-2.6.38/include/mtd/mtd-abi.h
+148c148
+< #define MTD_MAX_ECCPOS_ENTRIES	64
+---
+> #define MTD_MAX_ECCPOS_ENTRIES	256
+Only in fa-linux-2.6.38/scripts: FriendlyARM.cpio
+diff -r linux-2.6.38/sound/soc/samsung/Kconfig fa-linux-2.6.38/sound/soc/samsung/Kconfig
+150a151,159
+> config SND_SOC_MINI6410_WM9713
+> 	tristate "SoC AC97 Audio support for Mini6410 with WM9713"
+> 	depends on SND_SOC_SAMSUNG && MACH_MINI6410
+> 	select SND_SOC_WM9713
+> 	select SND_SAMSUNG_AC97
+> 	help
+> 	  Say Y if you want to add support for SoC audio on the FriendlyARM
+> 	  Mini6410 board.
+> 
+diff -r linux-2.6.38/sound/soc/samsung/Makefile fa-linux-2.6.38/sound/soc/samsung/Makefile
+34a35
+> snd-soc-mini6410-wm9713-objs := mini6410_wm9713.o
+52a54
+> obj-$(CONFIG_SND_SOC_MINI6410_WM9713) += snd-soc-mini6410-wm9713.o
+Only in fa-linux-2.6.38/sound/soc/samsung: mini6410_wm9713.c
