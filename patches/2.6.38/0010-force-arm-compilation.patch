@@ -1,0 +1,13 @@
+diff -rNu ../../originals/linux-2.6.38/Makefile inwork-2.6.38/Makefile
+--- ../../originals/linux-2.6.38/Makefile	2011-03-15 02:20:32.000000000 +0100
++++ inwork-2.6.38/Makefile	2013-04-17 15:59:32.523484060 +0200
+@@ -188,7 +188,8 @@
+ # Default value for CROSS_COMPILE is not to prefix executables
+ # Note: Some architectures assign CROSS_COMPILE in their arch/*/Makefile
+ export KBUILD_BUILDHOST := $(SUBARCH)
+-ARCH		?= $(SUBARCH)
++#ARCH		?= $(SUBARCH)
++ARCH		?= arm
+ CROSS_COMPILE	?= $(CONFIG_CROSS_COMPILE:"%"=%)
+ 
+ # Architecture as present in compile.h
