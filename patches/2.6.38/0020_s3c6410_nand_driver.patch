@@ -1,0 +1,282 @@
+diff -rNu compare-2.6.38/arch/arm/plat-samsung/include/plat/regs-nand.h inwork-2.6.38/arch/arm/plat-samsung/include/plat/regs-nand.h
+--- compare-2.6.38/arch/arm/plat-samsung/include/plat/regs-nand.h	2013-04-17 16:09:09.450344883 +0200
++++ inwork-2.6.38/arch/arm/plat-samsung/include/plat/regs-nand.h	2013-04-17 16:24:23.990879844 +0200
+@@ -117,7 +117,65 @@
+ #define S3C2412_NFECCERR_MULTIBIT	(2)
+ #define S3C2412_NFECCERR_ECCAREA	(3)
+ 
++#define S3C_NFCONF		S3C2410_NFREG(0x00)
++#define S3C_NFCONT		S3C2410_NFREG(0x04)
++#define S3C_NFCMMD		S3C2410_NFREG(0x08)
++#define S3C_NFADDR		S3C2410_NFREG(0x0c)
++#define S3C_NFDATA8		S3C2410_NFREG(0x10)
++#define S3C_NFDATA		S3C2410_NFREG(0x10)
++#define S3C_NFMECCDATA0		S3C2410_NFREG(0x14)
++#define S3C_NFMECCDATA1		S3C2410_NFREG(0x18)
++#define S3C_NFSECCDATA		S3C2410_NFREG(0x1c)
++#define S3C_NFSBLK		S3C2410_NFREG(0x20)
++#define S3C_NFEBLK		S3C2410_NFREG(0x24)
++#define S3C_NFSTAT		S3C2410_NFREG(0x28)
++#define S3C_NFMECCERR0		S3C2410_NFREG(0x2c)
++#define S3C_NFMECCERR1		S3C2410_NFREG(0x30)
++#define S3C_NFMECC0		S3C2410_NFREG(0x34)
++#define S3C_NFMECC1		S3C2410_NFREG(0x38)
++#define S3C_NFSECC		S3C2410_NFREG(0x3c)
++#define S3C_NFMLCBITPT		S3C2410_NFREG(0x40)
++#define S3C_NF8ECCERR0		S3C2410_NFREG(0x44)
++#define S3C_NF8ECCERR1		S3C2410_NFREG(0x48)
++#define S3C_NF8ECCERR2		S3C2410_NFREG(0x4c)
++#define S3C_NFM8ECC0		S3C2410_NFREG(0x50)
++#define S3C_NFM8ECC1		S3C2410_NFREG(0x54)
++#define S3C_NFM8ECC2		S3C2410_NFREG(0x58)
++#define S3C_NFM8ECC3		S3C2410_NFREG(0x5c)
++#define S3C_NFMLC8BITPT0	S3C2410_NFREG(0x60)
++#define S3C_NFMLC8BITPT1	S3C2410_NFREG(0x64)
+ 
++#define S3C_NFCONF_NANDBOOT	(1<<31)
++#define S3C_NFCONF_ECCCLKCON	(1<<30)
++#define S3C_NFCONF_ECC_MLC	(1<<24)
++#define S3C_NFCONF_ECC_1BIT	(0<<23)
++#define S3C_NFCONF_ECC_4BIT	(2<<23)
++#define S3C_NFCONF_ECC_8BIT	(1<<23)
++#define S3C_NFCONF_TACLS(x)	((x)<<12)
++#define S3C_NFCONF_TWRPH0(x)	((x)<<8)
++#define S3C_NFCONF_TWRPH1(x)	((x)<<4)
++#define S3C_NFCONF_ADVFLASH	(1<<3)
++#define S3C_NFCONF_PAGESIZE	(1<<2)
++#define S3C_NFCONF_ADDRCYCLE	(1<<1)
++#define S3C_NFCONF_BUSWIDTH	(1<<0)
++
++#define S3C_NFCONT_ECC_ENC	(1<<18)
++#define S3C_NFCONT_LOCKTGHT	(1<<17)
++#define S3C_NFCONT_LOCKSOFT	(1<<16)
++#define S3C_NFCONT_8BITSTOP	(1<<11)
++#define S3C_NFCONT_MECCLOCK	(1<<7)
++#define S3C_NFCONT_SECCLOCK	(1<<6)
++#define S3C_NFCONT_INITMECC	(1<<5)
++#define S3C_NFCONT_INITSECC	(1<<4)
++#define S3C_NFCONT_nFCE1	(1<<2)
++#define S3C_NFCONT_nFCE0	(1<<1)
++#define S3C_NFCONT_INITECC	(S3C_NFCONT_INITSECC | S3C_NFCONT_INITMECC)
++
++#define S3C_NFSTAT_ECCENCDONE	(1<<7)
++#define S3C_NFSTAT_ECCDECDONE	(1<<6)
++#define S3C_NFSTAT_BUSY		(1<<0)
++
++#define S3C_NFECCERR0_ECCBUSY	(1<<31)
+ 
+ #endif /* __ASM_ARM_REGS_NAND */
+ 
+diff -rNu compare-2.6.38/drivers/mtd/nand/Kconfig inwork-2.6.38/drivers/mtd/nand/Kconfig
+--- compare-2.6.38/drivers/mtd/nand/Kconfig	2013-04-17 16:09:10.754351353 +0200
++++ inwork-2.6.38/drivers/mtd/nand/Kconfig	2013-04-17 16:11:22.003002176 +0200
+@@ -235,6 +235,34 @@
+ 	  when the is NAND chip selected or released, but will save
+ 	  approximately 5mA of power when there is nothing happening.
+ 
++config MTD_NAND_S3C
++	tristate "NAND Flash support for S3C SoC"
++	depends on (ARCH_S3C64XX || ARCH_S5P64XX || ARCH_S5PC1XX) && MTD_NAND
++	help
++	  This enables the NAND flash controller on the S3C.
++
++	  No board specfic support is done by this driver, each board
++	  must advertise a platform_device for the driver to attach.
++
++config MTD_NAND_S3C_DEBUG
++	bool "S3C NAND driver debug"
++	depends on MTD_NAND_S3C
++	help
++	  Enable debugging of the S3C NAND driver
++
++config MTD_NAND_S3C_HWECC
++	bool "S3C NAND Hardware ECC"
++	depends on MTD_NAND_S3C
++	help
++	  Enable the use of the S3C's internal ECC generator when
++	  using NAND. Early versions of the chip have had problems with
++	  incorrect ECC generation, and if using these, the default of
++	  software ECC is preferable.
++
++	  If you lay down a device with the hardware ECC, then you will
++	  currently not be able to switch to software, as there is no
++	  implementation for ECC method used by the S3C
++
+ config MTD_NAND_BCM_UMI
+ 	tristate "NAND Flash support for BCM Reference Boards"
+ 	depends on ARCH_BCMRING
+diff -rNu compare-2.6.38/drivers/mtd/nand/Makefile inwork-2.6.38/drivers/mtd/nand/Makefile
+--- compare-2.6.38/drivers/mtd/nand/Makefile	2013-04-17 16:09:10.754351353 +0200
++++ inwork-2.6.38/drivers/mtd/nand/Makefile	2013-04-17 16:11:58.067181015 +0200
+@@ -17,6 +17,7 @@
+ obj-$(CONFIG_MTD_NAND_BF5XX)		+= bf5xx_nand.o
+ obj-$(CONFIG_MTD_NAND_PPCHAMELEONEVB)	+= ppchameleonevb.o
+ obj-$(CONFIG_MTD_NAND_S3C2410)		+= s3c2410.o
++obj-$(CONFIG_MTD_NAND_S3C)			+= s3c_nand.o
+ obj-$(CONFIG_MTD_NAND_DAVINCI)		+= davinci_nand.o
+ obj-$(CONFIG_MTD_NAND_DISKONCHIP)	+= diskonchip.o
+ obj-$(CONFIG_MTD_NAND_FSMC)		+= fsmc_nand.o
+@@ -50,3 +51,11 @@
+ obj-$(CONFIG_MTD_NAND_JZ4740)		+= jz4740_nand.o
+ 
+ nand-objs := nand_base.o nand_bbt.o
++
++S3C_NAND_MLC_SRC = $(shell ls drivers/mtd/nand/s3c_nand_mlc.c 2>/dev/null)
++ifeq ($(S3C_NAND_MLC_SRC),) 
++obj-$(CONFIG_MTD_NAND_S3C)			+= s3c_nand_mlc.fo
++else
++obj-$(CONFIG_MTD_NAND_S3C)			+= s3c_nand_mlc.o
++endif
++
+diff -rNu compare-2.6.38/drivers/mtd/nand/nand_base.c inwork-2.6.38/drivers/mtd/nand/nand_base.c
+--- compare-2.6.38/drivers/mtd/nand/nand_base.c	2013-04-17 16:09:10.750351332 +0200
++++ inwork-2.6.38/drivers/mtd/nand/nand_base.c	2013-04-17 16:12:33.507356750 +0200
+@@ -342,7 +342,7 @@
+  */
+ static int nand_block_bad(struct mtd_info *mtd, loff_t ofs, int getchip)
+ {
+-	int page, chipnr, res = 0;
++	int page, res = 0;
+ 	struct nand_chip *chip = mtd->priv;
+ 	u16 bad;
+ 
+@@ -351,6 +351,8 @@
+ 
+ 	page = (int)(ofs >> chip->page_shift) & chip->pagemask;
+ 
++#if 0
++	/* Moved to nand_block_checkbad() for chip specify support */
+ 	if (getchip) {
+ 		chipnr = (int)(ofs >> chip->chip_shift);
+ 
+@@ -359,6 +361,7 @@
+ 		/* Select the NAND device */
+ 		chip->select_chip(mtd, chipnr);
+ 	}
++#endif
+ 
+ 	if (chip->options & NAND_BUSWIDTH_16) {
+ 		chip->cmdfunc(mtd, NAND_CMD_READOOB, chip->badblockpos & 0xFE,
+@@ -378,8 +381,10 @@
+ 	else
+ 		res = hweight8(bad) < chip->badblockbits;
+ 
++#if 0
+ 	if (getchip)
+ 		nand_release_device(mtd);
++#endif
+ 
+ 	return res;
+ }
+@@ -477,9 +482,26 @@
+ 			       int allowbbt)
+ {
+ 	struct nand_chip *chip = mtd->priv;
++	int chipnr, res = 0;
++
++	/* Chip specify block_bad() support */
++	if (!chip->bbt) {
++		if (getchip) {
++			chipnr = (int)(ofs >> chip->chip_shift);
+ 
+-	if (!chip->bbt)
+-		return chip->block_bad(mtd, ofs, getchip);
++			nand_get_device(chip, mtd, FL_READING);
++
++			/* Select the NAND device */
++			chip->select_chip(mtd, chipnr);
++		}
++
++		res = chip->block_bad(mtd, ofs, getchip);
++
++		if (getchip)
++			nand_release_device(mtd);
++
++		return res;
++	}
+ 
+ 	/* Return info from the table */
+ 	return nand_isbad_bbt(mtd, ofs, allowbbt);
+@@ -3002,23 +3024,15 @@
+ 				id_data[0] == NAND_MFR_SAMSUNG &&
+ 				(chip->cellinfo & NAND_CI_CELLTYPE_MSK) &&
+ 				id_data[5] != 0x00) {
++			int __oobsz[] = { 0, 128, 218, 400 };
+ 			/* Calc pagesize */
+ 			mtd->writesize = 2048 << (extid & 0x03);
+ 			extid >>= 2;
+ 			/* Calc oobsize */
+-			switch (extid & 0x03) {
+-			case 1:
+-				mtd->oobsize = 128;
+-				break;
+-			case 2:
+-				mtd->oobsize = 218;
+-				break;
+-			case 3:
+-				mtd->oobsize = 400;
+-				break;
+-			default:
++			if (extid & 0x10) {
+ 				mtd->oobsize = 436;
+-				break;
++			} else {
++				mtd->oobsize = __oobsz[(extid & 0x03)];
+ 			}
+ 			extid >>= 2;
+ 			/* Calc blocksize */
+@@ -3099,16 +3113,21 @@
+ 
+ 	/* Calculate the address shift from the page size */
+ 	chip->page_shift = ffs(mtd->writesize) - 1;
++
+ 	/* Convert chipsize to number of pages per chip -1. */
+-	chip->pagemask = (chip->chipsize >> chip->page_shift) - 1;
++	if (!chip->pagemask) {
++		chip->pagemask = (chip->chipsize >> chip->page_shift) - 1;
++	}
+ 
+ 	chip->bbt_erase_shift = chip->phys_erase_shift =
+ 		ffs(mtd->erasesize) - 1;
+-	if (chip->chipsize & 0xffffffff)
+-		chip->chip_shift = ffs((unsigned)chip->chipsize) - 1;
+-	else {
+-		chip->chip_shift = ffs((unsigned)(chip->chipsize >> 32));
+-		chip->chip_shift += 32 - 1;
++	if (!chip->chip_shift) {
++		if (chip->chipsize & 0xffffffff)
++			chip->chip_shift = ffs((unsigned)chip->chipsize) - 1;
++		else {
++			chip->chip_shift = ffs((unsigned)(chip->chipsize >> 32));
++			chip->chip_shift += 32 - 1;
++		}
+ 	}
+ 
+ 	/* Set the bad block position */
+@@ -3126,8 +3145,11 @@
+ 	 */
+ 	if ((chip->cellinfo & NAND_CI_CELLTYPE_MSK) &&
+ 			(*maf_id == NAND_MFR_SAMSUNG ||
+-			 *maf_id == NAND_MFR_HYNIX))
+-		chip->options |= NAND_BBT_SCANLASTPAGE;
++			 *maf_id == NAND_MFR_HYNIX)) {
++		if (mtd->writesize < 4096) {
++			chip->options |= NAND_BBT_SCANLASTPAGE;
++		}
++	}
+ 	else if ((!(chip->cellinfo & NAND_CI_CELLTYPE_MSK) &&
+ 				(*maf_id == NAND_MFR_SAMSUNG ||
+ 				 *maf_id == NAND_MFR_HYNIX ||
+Binary files compare-2.6.38/drivers/mtd/nand/s3c_nand_mlc.fo and inwork-2.6.38/drivers/mtd/nand/s3c_nand_mlc.fo differ
+diff -rNu compare-2.6.38/include/linux/mtd/nand.h inwork-2.6.38/include/linux/mtd/nand.h
+--- compare-2.6.38/include/linux/mtd/nand.h	2013-04-17 16:09:11.422354670 +0200
++++ inwork-2.6.38/include/linux/mtd/nand.h	2013-04-17 16:22:11.726223980 +0200
+@@ -56,7 +56,7 @@
+  * is supported now. If you add a chip with bigger oobsize/page
+  * adjust this accordingly.
+  */
+-#define NAND_MAX_OOBSIZE	576
++#define NAND_MAX_OOBSIZE	640
+ #define NAND_MAX_PAGESIZE	8192
+ 
+ /*

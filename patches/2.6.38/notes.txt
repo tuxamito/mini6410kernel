@@ -1,0 +1,11 @@
+*
+0010-force-arm-compilation.patch
+
+*
+0020_s3c6410_nand_driver.patch
+drivers/mtd/nand/s3c_nand_mlc.fo
+Could be improved... many #if 0 in the patch...
+
+*
+0030_s3c_sdhci.patch
+

@@ -1,0 +1,39 @@
+diff -rNu compare-2.6.38/drivers/mmc/host/sdhci-s3c.c inwork-2.6.38/drivers/mmc/host/sdhci-s3c.c
+--- compare-2.6.38/drivers/mmc/host/sdhci-s3c.c	2013-04-17 16:09:10.698351079 +0200
++++ inwork-2.6.38/drivers/mmc/host/sdhci-s3c.c	2013-04-17 16:35:47.330268341 +0200
+@@ -506,6 +506,9 @@
+ 	if (pdata->cd_type == S3C_SDHCI_CD_PERMANENT)
+ 		host->mmc->caps = MMC_CAP_NONREMOVABLE;
+ 
++	if (pdata->host_caps & MMC_CAP_NEEDS_POLL)
++		host->mmc->caps = MMC_CAP_NEEDS_POLL;
++
+ 	if (pdata->host_caps)
+ 		host->mmc->caps |= pdata->host_caps;
+ 
+diff -rNu compare-2.6.38/drivers/mmc/host/sdhci.c inwork-2.6.38/drivers/mmc/host/sdhci.c
+--- compare-2.6.38/drivers/mmc/host/sdhci.c	2013-04-17 16:09:10.698351079 +0200
++++ inwork-2.6.38/drivers/mmc/host/sdhci.c	2013-04-17 16:36:13.554398383 +0200
+@@ -1877,7 +1877,7 @@
+ 		mmc->f_min = host->max_clk / SDHCI_MAX_DIV_SPEC_300;
+ 	else
+ 		mmc->f_min = host->max_clk / SDHCI_MAX_DIV_SPEC_200;
+-
++ 
+ 	mmc->f_max = host->max_clk;
+ 	mmc->caps |= MMC_CAP_SDIO_IRQ;
+ 
+@@ -1894,9 +1894,12 @@
+ 	if (caps & SDHCI_CAN_DO_HISPD)
+ 		mmc->caps |= MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED;
+ 
++	/* It's not a good assumption, disable it for FriendlyARM mini6410 */
++#ifndef CONFIG_MACH_MINI6410
+ 	if ((host->quirks & SDHCI_QUIRK_BROKEN_CARD_DETECTION) &&
+-	    mmc_card_is_removable(mmc))
++			mmc_card_is_removable(mmc))
+ 		mmc->caps |= MMC_CAP_NEEDS_POLL;
++#endif
+ 
+ 	ocr_avail = 0;
+ 	if (caps & SDHCI_CAN_VDD_330)
