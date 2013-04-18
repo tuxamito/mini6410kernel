@@ -9,3 +9,7 @@ Could be improved... many #if 0 in the patch...
 *
 0030_s3c_sdhci.patch
 
+*
+0040_mini6410_sound.patch
+maybe it can be merged with the other wm9713 driver?
+
