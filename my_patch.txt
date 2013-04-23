@@ -1,0 +1,28 @@
+reduced logs
+removed INITRAMFS
+wlan
+GPIO_SYSFS exposure
+1-wire
+gcc-patch
+ext4
+nfsv4
+removed many debugging options
+i2c
+spi
+-----
+
+gpio_pin_set
+
++CONFIG_MACH_NO_WESTBRIDGE=y
+
+adcdev.channel (set)
+
+
+
+
+
+
+
+
+CONFIG_W1_MASTER_GPIO
+MACH_MINI6410

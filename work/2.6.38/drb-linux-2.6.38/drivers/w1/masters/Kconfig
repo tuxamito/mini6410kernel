@@ -58,6 +58,20 @@ config W1_MASTER_GPIO
 	  This support is also available as a module.  If so, the module
 	  will be called w1-gpio.
 
+config MINI6410_W1_MASTER_PIN
+       bool "Mini6410 W1 Master Pin"
+       depends on W1_MASTER_GPIO && MACH_MINI6410
+       default n
+       help
+         Set the pin
+
+config MINI6410_W1_MASTER_PIN_NUMBER
+       int "GPM Pin Numer"
+       depends on MINI6410_W1_MASTER_PIN
+       default 0
+       help
+         Set the GPM pin number
+
 config HDQ_MASTER_OMAP
 	tristate "OMAP HDQ driver"
 	depends on ARCH_OMAP2430 || ARCH_OMAP3

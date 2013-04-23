@@ -32,7 +32,10 @@
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
 #include <linux/proc_fs.h>
+
+#ifdef MINI6410_W1_MASTER_PIN
 #include <linux/w1-gpio.h>
+#endif
 
 #include <video/platform_lcd.h>
 
@@ -79,10 +82,10 @@ extern int s3c_media_read_proc(char *buf, char **start, off_t offset,
 		int count, int *eof, void *data);
 
 
-
+#ifdef MINI6410_W1_MASTER_PIN
 /* 1wire bus master */
 static struct w1_gpio_platform_data w1_gpio_pdata = {
-  .pin    = S3C64XX_GPM(0),
+  .pin    = S3C64XX_GPM(MINI6410_W1_MASTER_PIN_NUMBER),
   .is_open_drain  = 1,
 };
 
@@ -91,7 +94,7 @@ static struct platform_device s3c_device_w1 = {
   .id      = -1,
   .dev.platform_data  = &w1_gpio_pdata,
 };
-
+#endif
 
 static struct s3c2410_uartcfg mini6410_uartcfgs[] __initdata = {
 	[0] = {
@@ -401,7 +404,9 @@ static struct platform_device *mini6410_devices[] __initdata = {
 	&s3c_device_g3d,
 #endif
 
+#ifdef MINI6410_W1_MASTER_PIN
 	&s3c_device_w1,
+#endif
 };
 
 static struct i2c_board_info i2c_devs0[] __initdata = {
@@ -473,9 +478,10 @@ static void __init mini6410_machine_init(void)
 	s3c_ts_set_platdata(&s3c_ts_platform);
 #endif
 
+#ifdef MINI6410_W1_MASTER_PIN
 	/* setup 1 wire pins */
 	s3c_gpio_cfgpin(w1_gpio_pdata.pin, 1);
-
+#endif
 
 	s3c_sdhci0_set_platdata(&mini6410_hsmmc0_pdata);
 	s3c_sdhci1_set_platdata(&mini6410_hsmmc1_pdata);
