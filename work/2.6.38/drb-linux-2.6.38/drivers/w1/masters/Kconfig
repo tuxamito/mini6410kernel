@@ -69,6 +69,7 @@ config MINI6410_W1_MASTER_PIN_NUMBER
        int "GPM Pin Numer"
        depends on MINI6410_W1_MASTER_PIN
        default 0
+       range 0 5
        help
          Set the GPM pin number
 

@@ -132,6 +132,14 @@ config MINI6410_ADC
 	help
 	  this is ADC driver for FriendlyARM Mini6410 development boards
 
+config MINI6410_ADC_PIN
+       int "Select ADC pin"
+       depends on MINI6410_ADC
+       default 0
+       range 0 7
+       help
+         this is the pin for the ADC driver (0 to 7)
+
 config BFIN_JTAG_COMM
 	tristate "Blackfin JTAG Communication"
 	depends on BLACKFIN

@@ -167,7 +167,7 @@ static int s3c2410_adc_open(struct inode *inode, struct file *filp)
 {
 	init_waitqueue_head(&(adcdev.wait));
 
-	adcdev.channel = 1;
+	adcdev.channel = CONFIG_MINI6410_ADC_PIN;
 	adcdev.prescale= 0xff;
 
 	s3c_adctsc_save();
