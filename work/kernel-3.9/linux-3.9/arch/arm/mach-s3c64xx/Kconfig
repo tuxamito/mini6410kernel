@@ -9,6 +9,7 @@ config PLAT_S3C64XX
 	depends on ARCH_S3C64XX
 	default y
 	select PM_GENERIC_DOMAINS
+	select PM
 	select SAMSUNG_WAKEMASK
 	help
 	  Base platform code for any Samsung S3C64XX device
