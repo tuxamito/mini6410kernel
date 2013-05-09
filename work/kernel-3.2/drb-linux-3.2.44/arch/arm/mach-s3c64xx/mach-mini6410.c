@@ -117,18 +117,18 @@ static struct platform_device mini6410_device_eth = {
 static struct mtd_partition mini6410_nand_part[] = {
 	[0] = {
 		.name	= "uboot",
-		.size	= SZ_1M,
+		.size	= (4 * 128 *SZ_1K),
 		.offset	= 0,
 	},
 	[1] = {
 		.name	= "kernel",
-		.size	= SZ_2M,
-		.offset	= SZ_1M,
+		.size	= (5*SZ_1M),
+		.offset	= (4 * 128 *SZ_1K),
 	},
 	[2] = {
 		.name	= "rootfs",
 		.size	= MTDPART_SIZ_FULL,
-		.offset	= SZ_1M + SZ_2M,
+		.offset	= (4 * 128 *SZ_1K) + (5*SZ_1M),
 	},
 };
 
@@ -310,6 +310,10 @@ static void __init mini6410_machine_init(void)
 	printk(KERN_INFO "MINI6410: selected LCD display is %dx%d\n",
 		mini6410_lcd_pdata.win[0]->win_mode.xres,
 		mini6410_lcd_pdata.win[0]->win_mode.yres);
+
+#ifdef CONFIG_MTD_NAND_S3C
+	s3c_device_nand.name = "s3c6410-nand";
+#endif
 
 	s3c_nand_set_platdata(&mini6410_nand_info);
 	s3c_fb_set_platdata(&mini6410_lcd_pdata);

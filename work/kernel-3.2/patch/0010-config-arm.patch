@@ -1,0 +1,13 @@
+diff -ruN linux-3.2.44/Makefile drb-linux-3.2.44/Makefile
+--- linux-3.2.44/Makefile	2013-04-25 21:25:51.000000000 +0200
++++ drb-linux-3.2.44/Makefile	2013-05-09 15:59:31.055643449 +0200
+@@ -192,7 +192,8 @@
+ # Default value for CROSS_COMPILE is not to prefix executables
+ # Note: Some architectures assign CROSS_COMPILE in their arch/*/Makefile
+ export KBUILD_BUILDHOST := $(SUBARCH)
+-ARCH		?= $(SUBARCH)
++#ARCH		?= $(SUBARCH)
++ARCH		?= arm
+ CROSS_COMPILE	?= $(CONFIG_CROSS_COMPILE:"%"=%)
+ 
+ # Architecture as present in compile.h
