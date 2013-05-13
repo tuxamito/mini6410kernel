@@ -837,7 +837,7 @@ static int s3c_nand_probe(struct platform_device *pdev, enum s3c_cpu_type cpu_ty
 		nand->ecc.hwctl		= s3c_nand_enable_hwecc;
 		nand->ecc.calculate	= s3c_nand_calculate_ecc;
 		nand->ecc.correct	= s3c_nand_correct_data;
-		nand->ecc.strength      = 1;
+		nand->ecc.strength      = 4;
 
 		s3c_nand_hwcontrol(0, NAND_CMD_READID, NAND_NCE | NAND_CLE | NAND_CTRL_CHANGE);
 		s3c_nand_hwcontrol(0, 0x00, NAND_CTRL_CHANGE | NAND_NCE | NAND_ALE);
