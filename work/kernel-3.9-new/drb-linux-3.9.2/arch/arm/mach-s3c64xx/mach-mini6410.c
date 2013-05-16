@@ -38,6 +38,7 @@
 #include <linux/platform_data/mtd-nand-s3c2410.h>
 #include <plat/regs-serial.h>
 #include <linux/platform_data/touchscreen-s3c2410.h>
+#include <linux/platform_data/asoc-s3c.h>
 
 #include <video/platform_lcd.h>
 #include <video/samsung_fimd.h>
@@ -220,6 +221,13 @@ static struct platform_device *mini6410_devices[] __initdata = {
 	&s3c_device_ohci,
 	&s3c_device_nand,
 	&s3c_device_fb,
+
+#ifdef CONFIG_SND_SAMSUNG_AC97
+	&s3c64xx_device_ac97,
+#else
+	&s3c64xx_device_iisv4,
+#endif
+
 	&mini6410_lcd_powerdev,
 	&s3c_device_adc,
 	&s3c_device_ts,
@@ -322,6 +330,7 @@ static void __init mini6410_machine_init(void)
 #endif
 
 	s3c_nand_set_platdata(&mini6410_nand_info);
+	s3c64xx_ac97_setup_gpio(0);
 	s3c_fb_set_platdata(&mini6410_lcd_pdata[features.lcd_index]);
 	s3c24xx_ts_set_platdata(NULL);
 
