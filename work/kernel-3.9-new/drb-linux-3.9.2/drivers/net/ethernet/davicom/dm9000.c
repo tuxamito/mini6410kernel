@@ -156,17 +156,6 @@ static inline board_info_t *to_dm9000_board(struct net_device *dev)
 
 /* DM9000 network board routine ---------------------------- */
 
-static void
-dm9000_reset(board_info_t * db)
-{
-	dev_dbg(db->dev, "resetting device\n");
-
-	/* RESET device */
-	writeb(DM9000_NCR, db->io_addr);
-	udelay(200);
-	writeb(NCR_RST, db->io_data);
-	udelay(200);
-}
 
 /*
  *   Read a byte from I/O port
@@ -187,6 +176,25 @@ iow(board_info_t * db, int reg, int value)
 {
 	writeb(reg, db->io_addr);
 	writeb(value, db->io_data);
+}
+
+static void dm9000_reset(board_info_t *db)
+{
+	dev_dbg(db->dev, "resetting device\n");
+
+	/* Reset DM9000, see DM9000 Application Notes V1.22 Jun 11, 2004 page 29
+	 * The essential point is that we have to do a double reset, and the
+	 * instruction is to set LBK into MAC internal loopback mode. */
+	iow(db, DM9000_NCR, 0x03);
+	udelay(100);        /* Application note says at least 20 us */
+	if (ior(db, DM9000_NCR) & 1)
+		dev_err(db->dev, "dm9000 did not respond to first reset\n");
+
+	iow(db, DM9000_NCR, 0);
+	iow(db, DM9000_NCR, 0x03);
+	udelay(100);
+	if (ior(db, DM9000_NCR) & 1)
+		dev_err(db->dev, "dm9000 did not respond to second reset\n");
 }
 
 /* routines for sending block to chip */
@@ -1168,6 +1176,7 @@ static irqreturn_t dm9000_interrupt(int irq, void *dev_id)
 	int int_status;
 	unsigned long flags;
 	u8 reg_save;
+	irqreturn_t ret = IRQ_NONE;
 
 	dm9000_dbg(db, 3, "entering %s\n", __func__);
 
@@ -1190,17 +1199,22 @@ static irqreturn_t dm9000_interrupt(int irq, void *dev_id)
 		dev_dbg(db->dev, "interrupt status %02x\n", int_status);
 
 	/* Received the coming packet */
-	if (int_status & ISR_PRS)
+	if (int_status & ISR_PRS) {
 		dm9000_rx(dev);
+		ret = IRQ_HANDLED;
+	}
 
-	/* Trnasmit Interrupt check */
-	if (int_status & ISR_PTS)
+	/* Transmit Interrupt check */
+	if (int_status & ISR_PTS) {
 		dm9000_tx_done(dev, db);
+		ret = IRQ_HANDLED;
+	}
 
 	if (db->type != TYPE_DM9000E) {
 		if (int_status & ISR_LNKCHNG) {
 			/* fire a link-change request */
 			schedule_delayed_work(&db->phy_poll, 1);
+			ret = IRQ_HANDLED;
 		}
 	}
 
@@ -1212,7 +1226,7 @@ static irqreturn_t dm9000_interrupt(int irq, void *dev_id)
 
 	spin_unlock_irqrestore(&db->lock, flags);
 
-	return IRQ_HANDLED;
+	return ret;
 }
 
 static irqreturn_t dm9000_wol_interrupt(int irq, void *dev_id)
